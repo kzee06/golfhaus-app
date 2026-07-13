@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { colors, fonts, radius, shadow } from '../theme';
 import { allDrills, Drill } from '../data';
@@ -6,14 +6,25 @@ import { ChevronRight } from '../Icon';
 import { Wordmark } from '../ui';
 
 const GROUP_ORDER = ['Short Game', 'Putting', 'Driving', 'Irons', 'Setup & Tempo'];
-const CHIPS = ['All', 'Short Game', 'Putting', 'Driving', 'Setup'];
+const CHIPS = ['All', 'Short Game', 'Putting', 'Driving', 'Irons', 'Setup'];
+// Chip label -> skill group name (chips are shorter than the full group titles).
+const CHIP_TO_SKILL: Record<string, string> = {
+  'Short Game': 'Short Game',
+  Putting: 'Putting',
+  Driving: 'Driving',
+  Irons: 'Irons',
+  Setup: 'Setup & Tempo',
+};
 
 export default function Drills({ onOpen }: { onOpen: (id: string) => void }) {
   const all = allDrills();
+  const [filter, setFilter] = useState('All');
   const groups = GROUP_ORDER.map((skill) => ({
     skill,
     items: all.filter((d) => d.skill === skill),
-  })).filter((g) => g.items.length);
+  }))
+    .filter((g) => g.items.length)
+    .filter((g) => filter === 'All' || g.skill === CHIP_TO_SKILL[filter]);
 
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 58, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
@@ -25,13 +36,16 @@ export default function Drills({ onOpen }: { onOpen: (id: string) => void }) {
         <Text style={{ fontFamily: fonts.display, fontSize: 30, letterSpacing: -0.9, color: colors.ink }}>Drill Library</Text>
       </View>
 
-      {/* filter chips (visual) */}
+      {/* filter chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 4 }}>
-        {CHIPS.map((label, i) => (
-          <View key={label} style={{ paddingVertical: 9, paddingHorizontal: 15, borderRadius: 14, backgroundColor: i === 0 ? colors.ink : colors.white, borderWidth: 1, borderColor: i === 0 ? colors.ink : colors.border12 }}>
-            <Text style={{ fontFamily: fonts.displaySemi, fontSize: 13, color: i === 0 ? colors.white : colors.ink55 }}>{label}</Text>
-          </View>
-        ))}
+        {CHIPS.map((label) => {
+          const active = filter === label;
+          return (
+            <Pressable key={label} onPress={() => setFilter(label)} style={{ paddingVertical: 9, paddingHorizontal: 15, borderRadius: 14, backgroundColor: active ? colors.ink : colors.white, borderWidth: 1, borderColor: active ? colors.ink : colors.border12 }}>
+              <Text style={{ fontFamily: fonts.displaySemi, fontSize: 13, color: active ? colors.white : colors.ink55 }}>{label}</Text>
+            </Pressable>
+          );
+        })}
       </ScrollView>
 
       <View style={{ paddingHorizontal: 20, paddingTop: 14, gap: 26 }}>
