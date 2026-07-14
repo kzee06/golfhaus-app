@@ -171,7 +171,17 @@ export default function App() {
 
         {phase === 'app' && (
           <>
-            {!overlay && tab === 'today' && <Today greeting={greeting} name={profile.name} streak={streak} onOpen={openDrill} onStart={startSession} onCoach={() => setTab('coach')} />}
+            {!overlay && tab === 'today' && (
+              <Today
+                profile={profile}
+                greeting={greeting}
+                name={profile.name}
+                streak={streak}
+                onOpenActivity={(id) => { setActiveActivityId(id); setOverlay('activity'); }}
+                onStart={(s) => { const first = s.activities[0]; if (first) { setActiveActivityId(first.id); setOverlay('activity'); } }}
+                onCoach={() => setTab('coach')}
+              />
+            )}
             {!overlay && tab === 'drills' && <Library onOpen={(id) => { setActiveActivityId(id); setOverlay('activity'); }} />}
             {!overlay && tab === 'coach' && <Coach profile={profile} streak={streak} />}
             {!overlay && tab === 'progress' && <Progress streak={streak} />}
