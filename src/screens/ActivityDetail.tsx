@@ -68,7 +68,16 @@ export default function ActivityDetail({ activity, onClose }: { activity: Activi
             {a.premium && <Text style={[chip, { color: colors.white, backgroundColor: colors.ink }]}>PREMIUM</Text>}
           </View>
           <Text style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 31, letterSpacing: -0.7, color: colors.ink, marginBottom: 8 }}>{a.title}</Text>
-          <Text style={{ fontFamily: fonts.body, fontSize: 15.5, lineHeight: 22, color: colors.ink55, marginBottom: 18 }}>{a.summary}</Text>
+          <Text style={{ fontFamily: fonts.body, fontSize: 15.5, lineHeight: 22, color: colors.ink55, marginBottom: 16 }}>{a.summary}</Text>
+
+          {/* golf benefit — always shown, always in a golf context */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 22, paddingVertical: 13, paddingHorizontal: 15, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border18, borderRadius: 16 }}>
+            <Icon name="trendUp" size={22} color={colors.ink} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: fonts.displaySemi, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', color: colors.ink50, marginBottom: 2 }}>Improves your golf</Text>
+              <Text style={{ fontFamily: fonts.bodyMed, fontSize: 15.5, color: colors.ink, lineHeight: 21 }}>{a.golfBenefit}</Text>
+            </View>
+          </View>
 
           {/* stat strip */}
           <View style={[{ flexDirection: 'row', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 18, padding: 4, marginBottom: 24 }, shadow.cardSoft]}>

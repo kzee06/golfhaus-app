@@ -175,6 +175,7 @@ export type Activity = {
   id: string; // 1
   title: string; // 2
   summary: string; // 3 short description
+  golfBenefit: string; // one-line "how this improves your golf game" — always shown, always in a golf context
   type: ActivityType; // 4
   category: string; // 5 main category (e.g. "Putting", "Hips", "Core")
   subcategory?: string; // 6
