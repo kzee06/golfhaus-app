@@ -23,6 +23,7 @@ import Today from './src/screens/Today';
 import Drills from './src/screens/Drills';
 import Progress from './src/screens/Progress';
 import You from './src/screens/You';
+import Coach from './src/screens/Coach';
 import DrillDetail from './src/screens/DrillDetail';
 import Session from './src/screens/Session';
 import Done from './src/screens/Done';
@@ -140,8 +141,9 @@ export default function App() {
 
         {phase === 'app' && (
           <>
-            {!overlay && tab === 'today' && <Today greeting={greeting} streak={streak} onOpen={openDrill} onStart={startSession} />}
+            {!overlay && tab === 'today' && <Today greeting={greeting} streak={streak} onOpen={openDrill} onStart={startSession} onCoach={() => setTab('coach')} />}
             {!overlay && tab === 'drills' && <Drills onOpen={openDrill} />}
+            {!overlay && tab === 'coach' && <Coach ctx={{ level, goal, access, hcp, streak }} />}
             {!overlay && tab === 'progress' && <Progress streak={streak} />}
             {!overlay && tab === 'you' && <You level={level} goal={goal} hcp={hcp} access={access} onRestart={restart} />}
 

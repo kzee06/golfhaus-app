@@ -2,7 +2,7 @@ import React from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { colors, fonts, radius, shadow } from '../theme';
 import { drills, rationale, Drill } from '../data';
-import { Icon, ChevronRight } from '../Icon';
+import { Icon, ChevronRight, Sparkle } from '../Icon';
 import { Wordmark, PrimaryButton, CoachLabel } from '../ui';
 
 const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -19,7 +19,7 @@ function weekStrip() {
   return out;
 }
 
-export default function Today({ greeting, streak, onOpen, onStart }: { greeting: string; streak: number; onOpen: (id: string) => void; onStart: () => void }) {
+export default function Today({ greeting, streak, onOpen, onStart, onCoach }: { greeting: string; streak: number; onOpen: (id: string) => void; onStart: () => void; onCoach: () => void }) {
   const week = weekStrip();
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 58, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
@@ -34,6 +34,18 @@ export default function Today({ greeting, streak, onOpen, onStart }: { greeting:
         <Text style={{ fontFamily: fonts.body, fontSize: 15, color: colors.ink55, marginBottom: 2 }}>{greeting}, KC</Text>
         <Text style={{ fontFamily: fonts.display, fontSize: 30, letterSpacing: -0.9, color: colors.ink }}>Today's Practice</Text>
       </View>
+
+      {/* ask-the-coach prompt */}
+      <Pressable onPress={onCoach} style={[{ marginHorizontal: 20, marginTop: 18, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.cardLg, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }, shadow.card]}>
+        <View style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}>
+          <Sparkle size={20} color={colors.ink} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontFamily: fonts.display, fontSize: 16.5, color: colors.ink, letterSpacing: -0.2 }}>Ask your coach</Text>
+          <Text style={{ fontFamily: fonts.body, fontSize: 14, color: colors.ink55, lineHeight: 19, marginTop: 2 }}>Stuck on something? Tell me your game and I'll find the fix.</Text>
+        </View>
+        <ChevronRight size={20} color={colors.ink30} />
+      </Pressable>
 
       {/* week strip */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 2 }}>
