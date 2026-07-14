@@ -202,6 +202,7 @@ export default function App() {
                 name={profile.name}
                 streak={streak}
                 practicedDays={practicedDayKeys(progress.sessions)}
+                history={progress.sessions}
                 onOpenActivity={(id) => { setActiveActivityId(id); setOverlay('activity'); }}
                 onStart={(s) => { if (s.activities.length) { setActiveSession(s); setOverlay('player'); } }}
                 onCoach={() => setTab('coach')}
