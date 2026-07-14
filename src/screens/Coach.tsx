@@ -13,7 +13,8 @@ import Svg, { Path } from 'react-native-svg';
 import { colors, fonts, radius, shadow } from '../theme';
 import { Sparkle } from '../Icon';
 import { Wordmark } from '../ui';
-import { ChatMessage, CoachContext, coachReply, coachIsLive, COACH_GREETING, COACH_SUGGESTIONS } from '../coach';
+import { ChatMessage, coachReply, coachIsLive, COACH_GREETING, COACH_SUGGESTIONS } from '../coach';
+import { Profile } from '../profile';
 
 function SendGlyph({ color }: { color: string }) {
   return (
@@ -31,7 +32,7 @@ function CoachAvatar() {
   );
 }
 
-export default function Coach({ ctx }: { ctx: CoachContext }) {
+export default function Coach({ profile, streak }: { profile: Profile; streak: number }) {
   const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', text: COACH_GREETING }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,7 +49,7 @@ export default function Coach({ ctx }: { ctx: CoachContext }) {
     setLoading(true);
     scrollToEnd();
     try {
-      const reply = await coachReply(next, ctx);
+      const reply = await coachReply(next, profile, streak);
       setMessages((m) => [...m, { role: 'assistant', text: reply }]);
     } catch (e: any) {
       setMessages((m) => [...m, { role: 'assistant', text: `Sorry — I couldn't reach the coaching service just now. (${e?.message ?? 'network error'})` }]);

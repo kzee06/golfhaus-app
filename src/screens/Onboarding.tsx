@@ -1,27 +1,24 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Image, Platform, Pressable, ScrollView, Text, TextInput, View, Easing } from 'react-native';
+import { Animated, Image, Platform, Pressable, ScrollView, Text, View, Easing } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { colors, fonts, radius, shadow } from '../theme';
-import { ASSETS, levelData, goalData, accessData, goalIco, accessIco, buildLines } from '../data';
-import { Icon, ChevronLeft, ArrowRight, CheckIcon } from '../Icon';
+import { ASSETS, buildLines } from '../data';
+import { Icon, ChevronLeft, ArrowRight, CheckIcon, Sparkle } from '../Icon';
 import { PrimaryButton, Kicker, styles as ui } from '../ui';
+import { Profile, STEPS, StepConfig } from '../profile';
 
 type Props = {
-  step: number;
-  level: string | null;
-  goal: string | null;
-  access: string[];
-  hcp: string;
+  step: number; // 0 = welcome, 1..N = STEPS, N+1 = building
+  profile: Profile;
   start: () => void;
   back: () => void;
   next: () => void;
-  pickLevel: (k: string) => void;
-  pickGoal: (k: string) => void;
-  toggleAccess: (k: string) => void;
-  setHcp: (v: string) => void;
+  setSingle: (field: any, key: string) => void;
+  toggleMulti: (field: any, key: string) => void;
   buildPlan: () => void;
-  canBuild: boolean;
 };
+
+const N = STEPS.length;
 
 // selected-card ring overlay
 function SelectedRing({ br }: { br: number }) {
@@ -41,8 +38,9 @@ function CheckBadge({ size = 22, top = 16, right = 16 }: { size?: number; top?: 
 }
 
 export default function Onboarding(p: Props) {
-  const showProgress = p.step >= 1 && p.step <= 4;
-  const pct = (Math.min(p.step, 3) / 3) * 100;
+  const showProgress = p.step >= 1 && p.step <= N;
+  const pct = (Math.min(p.step, N) / N) * 100;
+  const config = showProgress ? STEPS[p.step - 1] : null;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
@@ -56,28 +54,97 @@ export default function Onboarding(p: Props) {
           <View style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: colors.fill10, overflow: 'hidden' }}>
             <View style={{ height: '100%', borderRadius: 3, backgroundColor: colors.ink, width: `${pct}%` }} />
           </View>
-          <Text style={{ fontFamily: fonts.displaySemi, fontSize: 12, color: colors.ink45, letterSpacing: 0.5, minWidth: 28 }}>{Math.min(p.step, 3)}/3</Text>
+          <Text style={{ fontFamily: fonts.displaySemi, fontSize: 12, color: colors.ink45, letterSpacing: 0.5, minWidth: 28 }}>{Math.min(p.step, N)}/{N}</Text>
         </View>
       )}
 
-      {p.step === 1 && <Level {...p} />}
-      {p.step === 2 && <Goal {...p} />}
-      {(p.step === 3 || p.step === 4) && <Access {...p} />}
-      {p.step === 5 && <Building />}
+      {config && (
+        <StepScreen
+          config={config}
+          profile={p.profile}
+          isLast={p.step === N}
+          setSingle={p.setSingle}
+          toggleMulti={p.toggleMulti}
+          onContinue={p.step === N ? p.buildPlan : p.next}
+        />
+      )}
+
+      {p.step === N + 1 && <Building />}
     </View>
   );
 }
 
+// ─── Generic step ───────────────────────────────────────────────────────────
+
+function StepScreen({ config, profile, isLast, setSingle, toggleMulti, onContinue }: {
+  config: StepConfig; profile: Profile; isLast: boolean;
+  setSingle: (f: any, k: string) => void; toggleMulti: (f: any, k: string) => void; onContinue: () => void;
+}) {
+  const value = (profile as any)[config.field];
+  const isSelected = (key: string) => (config.mode === 'single' ? value === key : (value as string[]).includes(key));
+  const canContinue = config.mode === 'single' ? value != null : config.optional || (value as string[]).length >= 1;
+  const grid = config.columns === 2;
+  const showDesc = config.mode === 'single' && !grid && config.options.some((o) => o.desc);
+
+  const onPick = (key: string) => (config.mode === 'single' ? setSingle(config.field, key) : toggleMulti(config.field, key));
+
+  return (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 26, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <Kicker>{config.kicker}</Kicker>
+      <Text style={ui.h2}>{config.title}</Text>
+      {!!config.subtitle && <Text style={[ui.sub, { marginBottom: 24 }]}>{config.subtitle}</Text>}
+
+      <View style={grid ? { flexDirection: 'row', flexWrap: 'wrap', gap: 11 } : { gap: showDesc ? 12 : 11 }}>
+        {config.options.map((o) => {
+          const sel = isSelected(o.key);
+          if (grid) {
+            return (
+              <Pressable key={o.key} onPress={() => onPick(o.key)} style={[{ width: '47%', flexGrow: 1, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: colors.border08, backgroundColor: colors.white, minHeight: 64, justifyContent: 'center' }, shadow.cardSoft]}>
+                <Text style={{ fontFamily: fonts.bodySemi, fontSize: 15, color: colors.ink }}>{o.label}</Text>
+                {sel && <><SelectedRing br={18} /><CheckBadge size={20} top={10} right={10} /></>}
+              </Pressable>
+            );
+          }
+          if (showDesc) {
+            return (
+              <Pressable key={o.key} onPress={() => onPick(o.key)} style={[{ padding: 18, borderRadius: 20, borderWidth: 1, borderColor: colors.border08, backgroundColor: colors.white }, shadow.cardSoft]}>
+                <Text style={{ fontFamily: fonts.displaySemi, fontSize: 17, color: colors.ink }}>{o.label}</Text>
+                {!!o.desc && <Text style={{ fontFamily: fonts.body, fontSize: 14, color: colors.ink55, marginTop: 3 }}>{o.desc}</Text>}
+                {sel && <><SelectedRing br={20} /><CheckBadge /></>}
+              </Pressable>
+            );
+          }
+          // single-column row (no desc) — used for goals/exclusions multi and simple singles
+          return (
+            <Pressable key={o.key} onPress={() => onPick(o.key)} style={[{ paddingVertical: 17, paddingHorizontal: 18, borderRadius: 18, borderWidth: 1, borderColor: colors.border08, backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', gap: 12 }, shadow.cardSoft]}>
+              <Text style={{ flex: 1, fontFamily: fonts.bodyMed, fontSize: 16, color: colors.ink }}>{o.label}</Text>
+              {sel && (
+                <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckIcon size={12} />
+                </View>
+              )}
+              {sel && <SelectedRing br={18} />}
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <PrimaryButton label={isLast ? 'Build my plan' : 'Continue'} onPress={onContinue} disabled={!canContinue} height={isLast ? 60 : 58} br={isLast ? 30 : 29} style={{ marginTop: 26 }} />
+    </ScrollView>
+  );
+}
+
+// ─── Welcome ────────────────────────────────────────────────────────────────
+
 function Welcome({ start }: { start: () => void }) {
   return (
     <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.white }}>
-      {/* hero */}
       <View style={{ height: 368, overflow: 'hidden', backgroundColor: colors.ink }}>
         <Image source={ASSETS.hero} resizeMode="cover" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }} />
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(8,8,8,0.28)' }} />
         <View style={{ position: 'absolute', top: 104, left: 0, right: 0, alignItems: 'center', gap: 15 }}>
           <Image source={ASSETS.wordmarkWhite} resizeMode="contain" style={{ width: 224, height: 38 }} />
-          <Text style={{ fontFamily: fonts.bodySemi, fontSize: 11.5, letterSpacing: 3.4, color: 'rgba(255,255,255,0.74)', textTransform: 'uppercase' }}>AI Golf Coaching</Text>
+          <Text style={{ fontFamily: fonts.bodySemi, fontSize: 11.5, letterSpacing: 3.4, color: 'rgba(255,255,255,0.74)', textTransform: 'uppercase' }}>Your golf performance coach</Text>
         </View>
         <View style={{ position: 'absolute', bottom: 42, left: 0, right: 0, alignItems: 'center' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 30 }}>
@@ -86,13 +153,12 @@ function Welcome({ start }: { start: () => void }) {
           </View>
         </View>
       </View>
-      {/* sheet */}
       <ScrollView style={{ flex: 1, marginTop: -26 }} contentContainerStyle={{ borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, backgroundColor: colors.white, padding: 26, paddingTop: 30, paddingBottom: 34, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <Text style={{ fontFamily: fonts.displayExtra, fontSize: 30, lineHeight: 31, letterSpacing: -1, color: colors.ink, marginBottom: 24 }}>Lower scores,{'\n'}one session at a time.</Text>
+        <Text style={{ fontFamily: fonts.displayExtra, fontSize: 30, lineHeight: 31, letterSpacing: -1, color: colors.ink, marginBottom: 24 }}>Improve your golf{'\n'}and your golf body.</Text>
         <View style={{ gap: 19, marginBottom: 'auto' as any }}>
-          <ValueRow icon="sparkle" title="A fresh plan every session" sub="AI reads your game and picks the drills that save you the most shots." />
-          <ValueRow icon="target" title="Built around your goal" sub="From breaking 100 to dialing in your wedges — your plan, your pace." />
-          <ValueRow icon="trendUp" title="Watch your game improve" sub="Log every round and see your handicap trend in the right direction." />
+          <ValueRow icon="sparkle" title="A personalised daily plan" sub="Drills, mobility, strength and recovery picked for your game." />
+          <ValueRow icon="target" title="Built around your goals" sub="Your goals, time, equipment and body — no endless searching." />
+          <ValueRow icon="trendUp" title="Improve without the guesswork" sub="Just open the app and do the session that helps most today." />
         </View>
         <View style={{ marginTop: 30 }}>
           <PrimaryButton label="Get started" onPress={start} height={58} br={17} right={<ArrowRight />} />
@@ -108,7 +174,6 @@ function Welcome({ start }: { start: () => void }) {
 }
 
 function ValueRow({ icon, title, sub }: { icon: string; title: string; sub: string }) {
-  const { Sparkle } = require('../Icon');
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
       <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
@@ -122,95 +187,7 @@ function ValueRow({ icon, title, sub }: { icon: string; title: string; sub: stri
   );
 }
 
-function Level(p: Props) {
-  return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 26, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-      <Kicker>First up</Kicker>
-      <Text style={ui.h2}>How's your golf right now?</Text>
-      <Text style={[ui.sub, { marginBottom: 26 }]}>No wrong answer — it just helps us pitch things right.</Text>
-      <View style={{ gap: 12 }}>
-        {levelData.map((o) => {
-          const sel = p.level === o.key;
-          return (
-            <Pressable key={o.key} onPress={() => p.pickLevel(o.key)} style={[{ padding: 18, borderRadius: 20, borderWidth: 1, borderColor: colors.border08, backgroundColor: colors.white }, shadow.cardSoft]}>
-              <Text style={{ fontFamily: fonts.displaySemi, fontSize: 17, color: colors.ink }}>{o.label}</Text>
-              <Text style={{ fontFamily: fonts.body, fontSize: 14, color: colors.ink55, marginTop: 3 }}>{o.desc}</Text>
-              {sel && <><SelectedRing br={20} /><CheckBadge /></>}
-            </Pressable>
-          );
-        })}
-      </View>
-      <PrimaryButton label="Continue" onPress={p.next} disabled={!p.level} height={58} br={29} style={{ marginTop: 30 }} />
-    </ScrollView>
-  );
-}
-
-function Goal(p: Props) {
-  return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 26, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-      <Kicker>Your goal</Kicker>
-      <Text style={ui.h2}>What's bugging you most?</Text>
-      <Text style={[ui.sub, { marginBottom: 26 }]}>Pick the one that sounds like you. We'll build everything around it.</Text>
-      <View style={{ gap: 11 }}>
-        {goalData.map((o) => {
-          const sel = p.goal === o.key;
-          return (
-            <Pressable key={o.key} onPress={() => p.pickGoal(o.key)} style={[{ paddingVertical: 17, paddingHorizontal: 18, borderRadius: 18, borderWidth: 1, borderColor: colors.border08, backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', gap: 14 }, shadow.cardSoft]}>
-              <View style={{ width: 26, alignItems: 'center' }}>
-                <Icon name={goalIco[o.key]} size={21} color={colors.ink} />
-              </View>
-              <Text style={{ flex: 1, fontFamily: fonts.bodyMed, fontSize: 16, color: colors.ink, lineHeight: 21 }}>{o.label}</Text>
-              {sel && <SelectedRing br={18} />}
-            </Pressable>
-          );
-        })}
-      </View>
-      <PrimaryButton label="Continue" onPress={p.next} disabled={!p.goal} height={58} br={29} style={{ marginTop: 26 }} />
-    </ScrollView>
-  );
-}
-
-function Access(p: Props) {
-  return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 26, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-      <Kicker>Where you play</Kicker>
-      <Text style={ui.h2}>What can you get to?</Text>
-      <Text style={[ui.sub, { marginBottom: 24 }]}>Tick everything you've got. We'll only set drills you can actually do.</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 11 }}>
-        {accessData.map((o) => {
-          const sel = p.access.includes(o.key);
-          return (
-            <Pressable key={o.key} onPress={() => p.toggleAccess(o.key)} style={[{ width: '47%', flexGrow: 1, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: colors.border08, backgroundColor: colors.white, minHeight: 96, justifyContent: 'space-between' }, shadow.cardSoft]}>
-              <View style={{ height: 24, justifyContent: 'center' }}>
-                <Icon name={accessIco[o.key]} size={22} color={colors.ink} />
-              </View>
-              <Text style={{ fontFamily: fonts.bodySemi, fontSize: 15, color: colors.ink }}>{o.label}</Text>
-              {sel && <><SelectedRing br={18} /><CheckBadge size={20} top={12} right={12} /></>}
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <View style={[{ marginTop: 26, padding: 18, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border08 }, shadow.cardSoft]}>
-        <Text style={{ fontFamily: fonts.displaySemi, fontSize: 16, color: colors.ink }}>Know your handicap?</Text>
-        <Text style={{ fontFamily: fonts.body, fontSize: 14, color: colors.ink50, marginTop: 3, marginBottom: 14 }}>Totally optional — skip if you're not sure.</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <TextInput
-            value={p.hcp}
-            onChangeText={p.setHcp}
-            placeholder="e.g. 24"
-            placeholderTextColor={colors.ink40}
-            keyboardType="decimal-pad"
-            style={{ flex: 1, height: 48, borderRadius: 14, borderWidth: 1, borderColor: colors.border12, backgroundColor: colors.canvas, color: colors.ink, fontFamily: fonts.displaySemi, fontSize: 17, paddingHorizontal: 16 }}
-          />
-          <Text style={{ fontFamily: fonts.body, fontSize: 14, color: colors.ink40 }}>or leave blank</Text>
-        </View>
-      </View>
-
-      <PrimaryButton label="Build my plan" onPress={p.buildPlan} disabled={!p.canBuild} height={60} br={30} style={{ marginTop: 24 }} />
-    </ScrollView>
-  );
-}
+// ─── Building ───────────────────────────────────────────────────────────────
 
 function Building() {
   const spin = useRef(new Animated.Value(0)).current;
