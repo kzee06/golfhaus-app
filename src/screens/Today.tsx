@@ -19,7 +19,7 @@ function weekStrip() {
   return out;
 }
 
-export default function Today({ greeting, streak, onOpen, onStart, onCoach }: { greeting: string; streak: number; onOpen: (id: string) => void; onStart: () => void; onCoach: () => void }) {
+export default function Today({ greeting, name, streak, onOpen, onStart, onCoach }: { greeting: string; name: string; streak: number; onOpen: (id: string) => void; onStart: () => void; onCoach: () => void }) {
   const week = weekStrip();
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 58, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
@@ -31,7 +31,7 @@ export default function Today({ greeting, streak, onOpen, onStart, onCoach }: { 
             <Text style={{ fontFamily: fonts.display, fontSize: 16, color: colors.ink }}>{streak}</Text>
           </View>
         </View>
-        <Text style={{ fontFamily: fonts.body, fontSize: 15, color: colors.ink55, marginBottom: 2 }}>{greeting}, KC</Text>
+        <Text style={{ fontFamily: fonts.body, fontSize: 15, color: colors.ink55, marginBottom: 2 }}>{greeting}, {name}</Text>
         <Text style={{ fontFamily: fonts.display, fontSize: 30, letterSpacing: -0.9, color: colors.ink }}>Today's Practice</Text>
       </View>
 

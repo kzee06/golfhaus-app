@@ -17,6 +17,8 @@ import {
 
 import { colors } from './src/theme';
 import { allDrills, drills } from './src/data';
+import { Profile, EMPTY_PROFILE, isOnboarded, STEPS } from './src/profile';
+import { loadProfile, saveProfile, clearProfile } from './src/store';
 import TabBar, { Tab } from './src/TabBar';
 import Onboarding from './src/screens/Onboarding';
 import Today from './src/screens/Today';
@@ -34,6 +36,8 @@ type Phase = 'onboarding' | 'app';
 type Overlay = null | 'drill' | 'activity' | 'session';
 type Mode = 'timing' | 'logging' | 'done';
 
+const N = STEPS.length; // number of onboarding question steps
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     SchibstedGrotesk_500Medium,
@@ -46,13 +50,11 @@ export default function App() {
     Manrope_700Bold,
   });
 
-  // ---- state (mirrors the prototype state class) ----
+  // ---- state ----
+  const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE);
+  const [hydrated, setHydrated] = useState(false);
   const [phase, setPhase] = useState<Phase>('onboarding');
   const [step, setStep] = useState(0);
-  const [level, setLevel] = useState<string | null>(null);
-  const [goal, setGoal] = useState<string | null>(null);
-  const [access, setAccess] = useState<string[]>([]);
-  const [hcp, setHcp] = useState('');
   const [tab, setTab] = useState<Tab>('today');
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [activeId, setActiveId] = useState('ladder');
@@ -65,9 +67,23 @@ export default function App() {
   const streak = 6;
 
   const activeDrill = allDrills().find((d) => d.id === activeId) || drills[0];
-  const canBuild = !!level && !!goal && access.length > 0;
 
-  // ---- timer: increments only while running, session open, timing mode ----
+  // ---- hydrate persisted profile on launch ----
+  useEffect(() => {
+    (async () => {
+      const p = await loadProfile();
+      setProfile(p);
+      if (isOnboarded(p)) setPhase('app');
+      setHydrated(true);
+    })();
+  }, []);
+
+  // ---- persist profile after any change (once hydrated) ----
+  useEffect(() => {
+    if (hydrated) saveProfile(profile);
+  }, [profile, hydrated]);
+
+  // ---- timer ----
   useEffect(() => {
     if (overlay === 'session' && mode === 'timing' && running) {
       const id = setInterval(() => {
@@ -80,42 +96,59 @@ export default function App() {
   const buildTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (buildTimeout.current) clearTimeout(buildTimeout.current); }, []);
 
-  // ---- handlers ----
+  // ---- onboarding handlers ----
+  const setSingle = (field: keyof Profile, key: string) => setProfile((p) => ({ ...p, [field]: key }));
+
+  const toggleMulti = (field: keyof Profile, key: string) =>
+    setProfile((p) => {
+      const arr = (p[field] as string[]) || [];
+      const has = arr.includes(key);
+      // Equipment "none" is exclusive with real equipment.
+      if (field === 'equipment') {
+        if (key === 'none') return { ...p, equipment: has ? [] : ['none'] } as Profile;
+        const cleaned = arr.filter((x) => x !== 'none');
+        return { ...p, equipment: has ? cleaned.filter((x) => x !== key) : [...cleaned, key] } as Profile;
+      }
+      if (has) return { ...p, [field]: arr.filter((x) => x !== key) };
+      const cfg = STEPS.find((s) => s.field === field);
+      if (cfg && cfg.mode === 'multi' && cfg.maxSelect && arr.length >= cfg.maxSelect) return p; // cap reached
+      return { ...p, [field]: [...arr, key] };
+    });
+
   const buildPlan = () => {
-    if (!canBuild) return;
-    setStep(5);
+    setStep(N + 1);
     buildTimeout.current = setTimeout(() => {
+      setProfile((p) => ({ ...p, onboardedAt: new Date().toISOString() }));
       setPhase('app');
       setTab('today');
       setStep(0);
     }, 2600);
   };
+
   const restart = () => {
+    clearProfile();
+    setProfile(EMPTY_PROFILE);
     setPhase('onboarding');
     setStep(0);
-    setLevel(null);
-    setGoal(null);
-    setAccess([]);
-    setHcp('');
     setTab('today');
     setOverlay(null);
   };
+
   const openDrill = (id: string) => { setActiveId(id); setOverlay('drill'); };
   const startSession = () => { setOverlay('session'); setMode('timing'); setElapsed(0); setRunning(true); setLogMade(null); setLogFeel(null); };
   const submitLog = () => { if (logMade === null || !logFeel) return; setMode('done'); };
   const backHome = () => { setOverlay(null); setTab('today'); };
-  const toggleAccess = (k: string) => setAccess((a) => (a.includes(k) ? a.filter((x) => x !== k) : [...a, k]));
 
   const greetH = new Date().getHours();
   const greeting = greetH < 12 ? 'Good morning' : greetH < 18 ? 'Good afternoon' : 'Good evening';
 
   const { width, height } = useWindowDimensions();
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !hydrated) {
     return <View style={{ flex: 1, backgroundColor: colors.canvas }} />;
   }
 
-  // Constrain to a phone-width column so the layout matches the 402px design
-  // on wide/web viewports; fills the screen on a real device.
+  // Constrain to a phone-width column so the layout matches on wide/web
+  // viewports; fills the screen on a real device.
   const frameW = Math.min(width, 440);
   const showTabBar = phase === 'app' && !overlay;
 
@@ -126,29 +159,23 @@ export default function App() {
         {phase === 'onboarding' && (
           <Onboarding
             step={step}
-            level={level}
-            goal={goal}
-            access={access}
-            hcp={hcp}
+            profile={profile}
             start={() => setStep(1)}
             back={() => setStep((s) => Math.max(0, s - 1))}
             next={() => setStep((s) => s + 1)}
-            pickLevel={setLevel}
-            pickGoal={setGoal}
-            toggleAccess={toggleAccess}
-            setHcp={setHcp}
+            setSingle={setSingle}
+            toggleMulti={toggleMulti}
             buildPlan={buildPlan}
-            canBuild={canBuild}
           />
         )}
 
         {phase === 'app' && (
           <>
-            {!overlay && tab === 'today' && <Today greeting={greeting} streak={streak} onOpen={openDrill} onStart={startSession} onCoach={() => setTab('coach')} />}
+            {!overlay && tab === 'today' && <Today greeting={greeting} name={profile.name} streak={streak} onOpen={openDrill} onStart={startSession} onCoach={() => setTab('coach')} />}
             {!overlay && tab === 'drills' && <Library onOpen={(id) => { setActiveActivityId(id); setOverlay('activity'); }} />}
-            {!overlay && tab === 'coach' && <Coach ctx={{ level, goal, access, hcp, streak }} />}
+            {!overlay && tab === 'coach' && <Coach profile={profile} streak={streak} />}
             {!overlay && tab === 'progress' && <Progress streak={streak} />}
-            {!overlay && tab === 'you' && <You level={level} goal={goal} hcp={hcp} access={access} onRestart={restart} />}
+            {!overlay && tab === 'you' && <You profile={profile} onRestart={restart} />}
 
             {overlay === 'drill' && <DrillDetail drill={activeDrill} onClose={() => setOverlay(null)} onStart={startSession} />}
 
