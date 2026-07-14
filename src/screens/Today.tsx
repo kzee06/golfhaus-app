@@ -6,16 +6,18 @@ import { Wordmark, PrimaryButton, CoachLabel } from '../ui';
 import { Profile } from '../profile';
 import { Activity, ACTIVITY_GLYPH, ACTIVITY_TYPE_LABEL } from '../content';
 import { PlanSession, todaysSession, shorterSession, bodySession, locationLabel } from '../plan';
+import { dayKey } from '../progress';
 
 const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-function weekStrip(practiceDays: number[]) {
+function weekStrip(practicedKeys: string[]) {
+  const done = new Set(practicedKeys);
   const today = new Date();
   const out = [];
   for (let i = -2; i <= 4; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
-    out.push({ dow: dows[d.getDay()], date: String(d.getDate()), isToday: i === 0, hasP: practiceDays.includes(d.getDay()) });
+    out.push({ dow: dows[d.getDay()], date: String(d.getDate()), isToday: i === 0, hasP: done.has(dayKey(d)) });
   }
   return out;
 }
@@ -32,6 +34,7 @@ export default function Today({
   greeting,
   name,
   streak,
+  practicedDays,
   onOpenActivity,
   onStart,
   onCoach,
@@ -40,6 +43,7 @@ export default function Today({
   greeting: string;
   name: string;
   streak: number;
+  practicedDays: string[];
   onOpenActivity: (id: string) => void;
   onStart: (session: PlanSession) => void;
   onCoach: () => void;
@@ -58,7 +62,7 @@ export default function Today({
 
   const [kind, setKind] = useState<Kind>('balanced');
   const session = sessions[kind];
-  const week = weekStrip([1, 3, 6]);
+  const week = weekStrip(practicedDays);
   const displayName = name || 'golfer';
 
   return (

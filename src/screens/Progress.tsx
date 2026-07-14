@@ -1,16 +1,24 @@
 import React from 'react';
-import { Text, View, useWindowDimensions } from 'react-native';
-import { ScrollView } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { colors, fonts, radius, shadow } from '../theme';
-import { recent, recentIco } from '../data';
 import { Icon } from '../Icon';
 import { Wordmark } from '../ui';
-import { Radar, TrendChart } from '../Charts';
+import {
+  SessionRecord, FEEL_LABEL, relativeDay, recentSessions, sessionsThisWeek,
+  totalSessions, totalMinutes,
+} from '../progress';
+import { PlanSession } from '../plan';
 
-export default function Progress({ streak }: { streak: number }) {
-  const { width } = useWindowDimensions();
-  const frameW = Math.min(width, 402);
-  const trendW = frameW - 40 - 36; // screen minus card margins(20*2) minus card padding(18*2)
+const KIND_ICON: Record<PlanSession['kind'], string> = { balanced: 'target', quick: 'zap', body: 'dumbbell' };
+const KIND_LABEL: Record<PlanSession['kind'], string> = { balanced: 'Balanced', quick: 'Quick', body: 'Golf body' };
+
+export default function Progress({ streak, sessions }: { streak: number; sessions: SessionRecord[] }) {
+  const now = new Date();
+  const thisWeek = sessionsThisWeek(sessions, now);
+  const total = totalSessions(sessions);
+  const minutes = totalMinutes(sessions);
+  const recent = recentSessions(sessions, 8);
+  const hasData = total > 0;
 
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 58, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
@@ -18,85 +26,76 @@ export default function Progress({ streak }: { streak: number }) {
         <View style={{ marginBottom: 16 }}>
           <Wordmark height={26} />
         </View>
-        <Text style={{ fontFamily: fonts.body, fontSize: 15, color: colors.ink55, marginBottom: 2 }}>The last 6 weeks</Text>
+        <Text style={{ fontFamily: fonts.body, fontSize: 15, color: colors.ink55, marginBottom: 2 }}>
+          {hasData ? `${total} ${total === 1 ? 'session' : 'sessions'} logged` : 'Every session counts'}
+        </Text>
         <Text style={{ fontFamily: fonts.display, fontSize: 30, letterSpacing: -0.9, color: colors.ink }}>Your Progress</Text>
       </View>
 
-      {/* momentum callout */}
-      <View style={{ marginHorizontal: 20, marginTop: 20, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border18, flexDirection: 'row', alignItems: 'center', gap: 13 }}>
-        <Icon name="trendUp" size={22} color={colors.ink} />
-        <Text style={{ flex: 1, fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.ink }}>
-          <Text style={{ fontFamily: fonts.bodyBold }}>Short game up 14%</Text> this month. That's where it counts — keep it rolling.
-        </Text>
-      </View>
-
-      {/* radar */}
-      <View style={[{ marginHorizontal: 20, marginTop: 22, paddingTop: 20, paddingHorizontal: 16, paddingBottom: 14, borderRadius: 24, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border }, shadow.card]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 6, paddingBottom: 8 }}>
-          <Text style={{ fontFamily: fonts.displaySemi, fontSize: 16, color: colors.ink }}>Your game, by area</Text>
-          <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.ink45 }}>vs. 4 weeks ago</Text>
-        </View>
-        <View style={{ alignItems: 'center' }}>
-          <Radar />
-        </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20, paddingTop: 6 }}>
-          <Legend swatch={<View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: colors.ink }} />} label="Now" />
-          <Legend swatch={<View style={{ width: 12, height: 3, borderRadius: 2, backgroundColor: 'rgba(20,20,20,0.35)' }} />} label="Then" />
-        </View>
-      </View>
-
-      {/* stat row */}
-      <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingTop: 14 }}>
-        <StatCard label="Current streak" value={String(streak)} unit="days" />
-        <StatCard label="Sessions this week" value="4" unit="/ 5" />
-      </View>
-
-      {/* handicap trend */}
-      <View style={[{ marginHorizontal: 20, marginTop: 12, padding: 18, borderRadius: radius.card, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border }, shadow.card]}>
-        <View style={{ marginBottom: 12 }}>
-          <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.ink50 }}>Handicap trend</Text>
-          <Text style={{ fontFamily: fonts.display, fontSize: 24, color: colors.ink, marginTop: 2 }}>
-            24 <Text style={{ fontFamily: fonts.displaySemi, fontSize: 14, color: colors.ink }}>▾ 4 since May</Text>
+      {!hasData ? (
+        <View style={{ marginHorizontal: 20, marginTop: 22, padding: 26, borderRadius: radius.cardLg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center' }}>
+          <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.fill10, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <Icon name="trendUp" size={26} color={colors.ink} />
+          </View>
+          <Text style={{ fontFamily: fonts.display, fontSize: 20, color: colors.ink, marginBottom: 8, textAlign: 'center', letterSpacing: -0.4 }}>No sessions yet</Text>
+          <Text style={{ fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.ink55, textAlign: 'center', maxWidth: 280 }}>
+            Finish today's plan and it'll show up here — your streak, your minutes, and every session you complete.
           </Text>
         </View>
-        <TrendChart width={trendW} />
-      </View>
-
-      {/* recent sessions */}
-      <View style={{ paddingHorizontal: 24, paddingTop: 22, paddingBottom: 8 }}>
-        <Text style={{ fontFamily: fonts.displaySemi, fontSize: 13, color: colors.ink50, letterSpacing: 0.6, textTransform: 'uppercase' }}>Recent sessions</Text>
-      </View>
-      <View style={{ paddingHorizontal: 20, gap: 10 }}>
-        {recent.map((r, i) => (
-          <View key={i} style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16 }, shadow.cardSoft]}>
-            <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: colors.fill10, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={recentIco[i] || 'flag'} size={18} color={colors.ink} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: fonts.bodySemi, fontSize: 15, color: colors.ink }}>{r.title}</Text>
-              <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.ink50, marginTop: 1 }}>{r.meta}</Text>
-            </View>
-            <Text style={{ fontFamily: fonts.display, fontSize: 15, color: colors.ink }}>{r.score}</Text>
+      ) : (
+        <>
+          {/* momentum callout — real streak */}
+          <View style={{ marginHorizontal: 20, marginTop: 20, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border18, flexDirection: 'row', alignItems: 'center', gap: 13 }}>
+            <Icon name="flame" size={22} color={colors.ink} />
+            <Text style={{ flex: 1, fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.ink }}>
+              {streak > 1
+                ? <><Text style={{ fontFamily: fonts.bodyBold }}>{streak}-day streak.</Text> You're building a real habit — keep it rolling.</>
+                : <><Text style={{ fontFamily: fonts.bodyBold }}>You're on the board.</Text> Come back tomorrow to start a streak.</>}
+            </Text>
           </View>
-        ))}
-      </View>
-    </ScrollView>
-  );
-}
 
-function Legend({ swatch, label }: { swatch: React.ReactNode; label: string }) {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-      {swatch}
-      <Text style={{ fontFamily: fonts.body, fontSize: 13, color: 'rgba(20,20,20,0.6)' }}>{label}</Text>
-    </View>
+          {/* stat grid */}
+          <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingTop: 14 }}>
+            <StatCard label="Current streak" value={String(streak)} unit={streak === 1 ? 'day' : 'days'} />
+            <StatCard label="Sessions this week" value={String(thisWeek)} unit={thisWeek === 1 ? 'session' : 'sessions'} />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingTop: 12 }}>
+            <StatCard label="Sessions all-time" value={String(total)} unit={total === 1 ? 'done' : 'done'} />
+            <StatCard label="Minutes trained" value={String(minutes)} unit="min" />
+          </View>
+
+          {/* recent sessions */}
+          <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 8 }}>
+            <Text style={{ fontFamily: fonts.displaySemi, fontSize: 13, color: colors.ink50, letterSpacing: 0.6, textTransform: 'uppercase' }}>Recent sessions</Text>
+          </View>
+          <View style={{ paddingHorizontal: 20, gap: 10 }}>
+            {recent.map((r) => (
+              <View key={r.id} style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16 }, shadow.cardSoft]}>
+                <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: colors.fill10, alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name={KIND_ICON[r.kind]} size={18} color={colors.ink} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ fontFamily: fonts.bodySemi, fontSize: 15, color: colors.ink }} numberOfLines={1}>{r.focus}</Text>
+                  <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.ink50, marginTop: 1 }}>
+                    {relativeDay(r.date, now)} · {r.activityCount} {r.activityCount === 1 ? 'activity' : 'activities'} · {r.totalMin} min
+                  </Text>
+                </View>
+                {r.feel && (
+                  <Text style={{ fontFamily: fonts.displaySemi, fontSize: 12, letterSpacing: 0.3, color: colors.ink, backgroundColor: colors.fill06, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 9, overflow: 'hidden' }}>{FEEL_LABEL[r.feel]}</Text>
+                )}
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+    </ScrollView>
   );
 }
 
 function StatCard({ label, value, unit }: { label: string; value: string; unit: string }) {
   return (
     <View style={[{ flex: 1, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, padding: 16 }, shadow.cardSoft]}>
-      <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.ink50, marginBottom: 6 }}>{label}</Text>
+      <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.ink50, marginBottom: 6 }} numberOfLines={1}>{label}</Text>
       <Text style={{ fontFamily: fonts.display, fontSize: 28, color: colors.ink }}>
         {value} <Text style={{ fontFamily: fonts.bodyMed, fontSize: 15, color: colors.ink50 }}>{unit}</Text>
       </Text>
