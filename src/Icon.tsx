@@ -28,6 +28,12 @@ const ICONS: Record<string, Part[]> = {
   // nav glyphs (filled=false, stroked)
   navHome: [['path', { d: 'M5 21V8l7-5 7 5v13' }], ['path', { d: 'M12 8v5M12 13l4-1.5' }]],
   navYou: [['circle', { cx: 12, cy: 8, r: 4 }], ['path', { d: 'M4 21c0-4 3.6-7 8-7s8 3 8 7' }]],
+  // activity-type glyphs (used for cards without photography)
+  dumbbell: [['path', { d: 'M6.5 6.5 17.5 17.5' }], ['path', { d: 'M4 8l-1.5 1.5a1.5 1.5 0 0 0 0 2.1L4.4 14' }], ['path', { d: 'M8 4 6.5 5.5a1.5 1.5 0 0 0 0 2.1L8.6 9.7' }], ['path', { d: 'M20 16l1.5-1.5a1.5 1.5 0 0 0 0-2.1L19.6 10' }], ['path', { d: 'M16 20l1.5-1.5a1.5 1.5 0 0 0 0-2.1L15.4 14.3' }]],
+  move: [['polyline', { points: '5 9 2 12 5 15' }], ['polyline', { points: '9 5 12 2 15 5' }], ['polyline', { points: '15 19 12 22 9 19' }], ['polyline', { points: '19 9 22 12 19 15' }], ['line', { x1: 2, y1: 12, x2: 22, y2: 12 }], ['line', { x1: 12, y1: 2, x2: 12, y2: 22 }]],
+  sun: [['circle', { cx: 12, cy: 12, r: 4 }], ['path', { d: 'M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4' }]],
+  heart: [['path', { d: 'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z' }]],
+  wind: [['path', { d: 'M9.6 4.6A2 2 0 1 1 11 8H2' }], ['path', { d: 'M12.6 19.4A2 2 0 1 0 14 16H2' }], ['path', { d: 'M17.7 7.7A2.5 2.5 0 1 1 19.5 12H2' }]],
   // chevrons / play / check / pause used as raw components below
 };
 
