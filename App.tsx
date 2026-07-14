@@ -30,10 +30,12 @@ import ActivityDetail from './src/screens/ActivityDetail';
 import DrillDetail from './src/screens/DrillDetail';
 import Session from './src/screens/Session';
 import Done from './src/screens/Done';
+import SessionPlayer from './src/screens/SessionPlayer';
 import { activityById } from './src/content';
+import { PlanSession } from './src/plan';
 
 type Phase = 'onboarding' | 'app';
-type Overlay = null | 'drill' | 'activity' | 'session';
+type Overlay = null | 'drill' | 'activity' | 'session' | 'player';
 type Mode = 'timing' | 'logging' | 'done';
 
 const N = STEPS.length; // number of onboarding question steps
@@ -59,6 +61,7 @@ export default function App() {
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [activeId, setActiveId] = useState('ladder');
   const [activeActivityId, setActiveActivityId] = useState<string | null>(null);
+  const [activeSession, setActiveSession] = useState<PlanSession | null>(null);
   const [running, setRunning] = useState(true);
   const [elapsed, setElapsed] = useState(0);
   const [mode, setMode] = useState<Mode>('timing');
@@ -178,7 +181,7 @@ export default function App() {
                 name={profile.name}
                 streak={streak}
                 onOpenActivity={(id) => { setActiveActivityId(id); setOverlay('activity'); }}
-                onStart={(s) => { const first = s.activities[0]; if (first) { setActiveActivityId(first.id); setOverlay('activity'); } }}
+                onStart={(s) => { if (s.activities.length) { setActiveSession(s); setOverlay('player'); } }}
                 onCoach={() => setTab('coach')}
               />
             )}
@@ -212,6 +215,16 @@ export default function App() {
             )}
 
             {overlay === 'session' && mode === 'done' && <Done streak={streak} logMade={logMade} onBack={backHome} />}
+
+            {overlay === 'player' && activeSession && (
+              <SessionPlayer
+                session={activeSession}
+                name={profile.name}
+                streak={streak}
+                onExit={() => { setOverlay(null); setActiveSession(null); setTab('today'); }}
+                onFinish={() => { /* progress tracking lands in a later phase */ }}
+              />
+            )}
 
             {showTabBar && <TabBar tab={tab} onChange={(t) => { setTab(t); setOverlay(null); }} />}
           </>
