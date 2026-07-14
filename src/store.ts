@@ -4,8 +4,10 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Profile, EMPTY_PROFILE } from './profile';
+import { ProgressState, EMPTY_PROGRESS } from './progress';
 
 const PROFILE_KEY = 'golfhaus/profile/v1';
+const PROGRESS_KEY = 'golfhaus/progress/v1';
 
 // Load the saved profile, merged onto defaults so new fields added later
 // don't break older saved data. Returns EMPTY_PROFILE if nothing/invalid.
@@ -31,6 +33,35 @@ export async function saveProfile(profile: Profile): Promise<void> {
 export async function clearProfile(): Promise<void> {
   try {
     await AsyncStorage.removeItem(PROFILE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+// ─── Progress (append-only session log) ──────────────────────────────────────
+
+export async function loadProgress(): Promise<ProgressState> {
+  try {
+    const raw = await AsyncStorage.getItem(PROGRESS_KEY);
+    if (!raw) return EMPTY_PROGRESS;
+    const parsed = JSON.parse(raw);
+    return { ...EMPTY_PROGRESS, ...parsed, sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [] };
+  } catch {
+    return EMPTY_PROGRESS;
+  }
+}
+
+export async function saveProgress(progress: ProgressState): Promise<void> {
+  try {
+    await AsyncStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+  } catch {
+    // best-effort
+  }
+}
+
+export async function clearProgress(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(PROGRESS_KEY);
   } catch {
     // ignore
   }

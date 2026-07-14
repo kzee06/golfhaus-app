@@ -18,7 +18,11 @@ import {
 import { colors } from './src/theme';
 import { allDrills, drills } from './src/data';
 import { Profile, EMPTY_PROFILE, isOnboarded, STEPS } from './src/profile';
-import { loadProfile, saveProfile, clearProfile } from './src/store';
+import { loadProfile, saveProfile, clearProfile, loadProgress, saveProgress, clearProgress } from './src/store';
+import {
+  ProgressState, EMPTY_PROGRESS, addSession, recordFromSession, computeStreak,
+  practicedDayKeys,
+} from './src/progress';
 import TabBar, { Tab } from './src/TabBar';
 import Onboarding from './src/screens/Onboarding';
 import Today from './src/screens/Today';
@@ -67,24 +71,32 @@ export default function App() {
   const [mode, setMode] = useState<Mode>('timing');
   const [logMade, setLogMade] = useState<number | null>(null);
   const [logFeel, setLogFeel] = useState<string | null>(null);
-  const streak = 6;
+  const [progress, setProgress] = useState<ProgressState>(EMPTY_PROGRESS);
+
+  // Streak and weekly practice derive from the real session log.
+  const streak = computeStreak(progress.sessions, new Date());
 
   const activeDrill = allDrills().find((d) => d.id === activeId) || drills[0];
 
-  // ---- hydrate persisted profile on launch ----
+  // ---- hydrate persisted profile + progress on launch ----
   useEffect(() => {
     (async () => {
-      const p = await loadProfile();
+      const [p, prog] = await Promise.all([loadProfile(), loadProgress()]);
       setProfile(p);
+      setProgress(prog);
       if (isOnboarded(p)) setPhase('app');
       setHydrated(true);
     })();
   }, []);
 
-  // ---- persist profile after any change (once hydrated) ----
+  // ---- persist profile / progress after any change (once hydrated) ----
   useEffect(() => {
     if (hydrated) saveProfile(profile);
   }, [profile, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) saveProgress(progress);
+  }, [progress, hydrated]);
 
   // ---- timer ----
   useEffect(() => {
@@ -130,11 +142,20 @@ export default function App() {
 
   const restart = () => {
     clearProfile();
+    clearProgress();
     setProfile(EMPTY_PROFILE);
+    setProgress(EMPTY_PROGRESS);
     setPhase('onboarding');
     setStep(0);
     setTab('today');
     setOverlay(null);
+  };
+
+  // Record a completed guided session, then return home.
+  const finishSession = (session: PlanSession, feel: string | null) => {
+    const id = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    const rec = recordFromSession(session, feel as any, id, new Date().toISOString());
+    setProgress((pr) => addSession(pr, rec));
   };
 
   const openDrill = (id: string) => { setActiveId(id); setOverlay('drill'); };
@@ -180,6 +201,7 @@ export default function App() {
                 greeting={greeting}
                 name={profile.name}
                 streak={streak}
+                practicedDays={practicedDayKeys(progress.sessions)}
                 onOpenActivity={(id) => { setActiveActivityId(id); setOverlay('activity'); }}
                 onStart={(s) => { if (s.activities.length) { setActiveSession(s); setOverlay('player'); } }}
                 onCoach={() => setTab('coach')}
@@ -187,7 +209,7 @@ export default function App() {
             )}
             {!overlay && tab === 'drills' && <Library onOpen={(id) => { setActiveActivityId(id); setOverlay('activity'); }} />}
             {!overlay && tab === 'coach' && <Coach profile={profile} streak={streak} />}
-            {!overlay && tab === 'progress' && <Progress streak={streak} />}
+            {!overlay && tab === 'progress' && <Progress streak={streak} sessions={progress.sessions} />}
             {!overlay && tab === 'you' && <You profile={profile} onRestart={restart} />}
 
             {overlay === 'drill' && <DrillDetail drill={activeDrill} onClose={() => setOverlay(null)} onStart={startSession} />}
@@ -222,7 +244,7 @@ export default function App() {
                 name={profile.name}
                 streak={streak}
                 onExit={() => { setOverlay(null); setActiveSession(null); setTab('today'); }}
-                onFinish={() => { /* progress tracking lands in a later phase */ }}
+                onFinish={(summary) => finishSession(activeSession, summary.feel)}
               />
             )}
 
