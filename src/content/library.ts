@@ -19,14 +19,59 @@ const IMG = {
 
 const DATE = '2026-07-14';
 
-// Factory: fills the CMS-boilerplate fields so each entry stays focused on
-// meaningful content. Author/dates/premium default here; override as needed.
-function mk(a: Omit<Activity, 'premium' | 'author' | 'createdAt' | 'updatedAt'> & Partial<Pick<Activity, 'premium' | 'author' | 'createdAt' | 'updatedAt'>>): Activity {
+// One-line golf improvement for every activity — always shown, always in a
+// golf context, so a golfer instantly sees why a mobility or strength drill
+// matters for their game (not just an anatomical description). Keyed by id.
+const GOLF_BENEFIT: Record<string, string> = {
+  // skill drills
+  ladder: 'Turns three shots around the green into two.',
+  clock: 'Kills three-putts by dialling in your pace.',
+  tempo: 'A repeatable tempo that holds up under pressure.',
+  gate: 'Starts putts on your line so good speed drops.',
+  bump: 'A reliable go-to chip that gets you out of trouble.',
+  tee: 'Flush centre strikes that fly straighter and further.',
+  towel: 'Crisp, consistent iron contact — fewer fat and thin shots.',
+  align: 'Fixes hidden aim errors, the cause of half your misses.',
+  coin: 'Long putts that finish stone dead, not five feet by.',
+  flop: 'An escape when you’re short-sided with no green to work with.',
+  bunker: 'Confident, first-time bunker escapes.',
+  punch: 'A low, controlled flight that beats the wind.',
+  mirror: 'An athletic setup that makes every swing easier.',
+  threeball: 'Command of your ball flight when the course demands it.',
+  // golf-body
+  'mob-9090': 'Frees the hip turn that powers your backswing.',
+  'mob-tspine': 'Unlocks the shoulder turn for a bigger, freer swing.',
+  'mob-shoulder': 'Keeps the swing’s main joint healthy and full-range.',
+  'mob-ankle': 'Restores the ground stability your swing pushes against.',
+  'str-deadbug': 'A stable core that protects your back and steadies your strike.',
+  'str-glutebridge': 'Wakes up the glutes that drive hip power and clubhead speed.',
+  'str-pallof': 'The brace that keeps your posture through the swing.',
+  'str-splitsquat': 'A steady lower-body base for better weight transfer.',
+  'pow-mbthrow': 'Turns rotational strength into real swing speed.',
+  'bal-singleleg': 'A steadier swing and a balanced finish.',
+  // recovery
+  'yoga-hipflow': 'Loosens the hips so your body doesn’t fight your turn.',
+  'yoga-preround': 'Feel loose and ready on the first tee, not the sixth.',
+  'stretch-5min': 'Eases the tightness golf builds up, in five minutes.',
+  'stretch-postround': 'Helps your body recover so you play well tomorrow.',
+  'warm-5min': 'Play loose from hole one instead of the sixth.',
+  'warm-range': 'Warms body and swing so you groove good habits.',
+  'rec-foamroll': 'Releases post-round tightness in the areas golf loads most.',
+  'rec-postround': 'Bounce back faster for your next round.',
+};
+
+// Factory: fills the CMS-boilerplate fields (and the golf benefit, by id) so
+// each entry stays focused on meaningful content.
+type MkInput = Omit<Activity, 'premium' | 'author' | 'createdAt' | 'updatedAt' | 'golfBenefit'> &
+  Partial<Pick<Activity, 'premium' | 'author' | 'createdAt' | 'updatedAt' | 'golfBenefit'>>;
+
+function mk(a: MkInput): Activity {
   return {
     premium: false,
     author: 'GolfHaus Coaching',
     createdAt: DATE,
     updatedAt: DATE,
+    golfBenefit: GOLF_BENEFIT[a.id] ?? a.summary,
     ...a,
   };
 }

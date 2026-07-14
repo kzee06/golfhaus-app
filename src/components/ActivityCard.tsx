@@ -34,7 +34,6 @@ function GlyphTile({ activity, size }: { activity: Activity; size: number }) {
 }
 
 export default function ActivityCard({ activity, onPress }: { activity: Activity; onPress: () => void }) {
-  const sub = activity.subcategory ? `${activity.category} · ${activity.subcategory}` : activity.category;
   return (
     <Pressable onPress={onPress} style={[{ backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, padding: 11, flexDirection: 'row', gap: 13, alignItems: 'center' }, shadow.cardSoft]}>
       {activity.thumbnail ? (
@@ -46,11 +45,12 @@ export default function ActivityCard({ activity, onPress }: { activity: Activity
       )}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={{ fontFamily: fonts.displaySemi, fontSize: 16.5, color: colors.ink }} numberOfLines={1}>{activity.title}</Text>
-        <Text style={{ fontFamily: fonts.body, fontSize: 13.5, color: colors.ink50, marginTop: 3 }} numberOfLines={1}>{sub}</Text>
+        {/* Always golf context: how this improves the golfer's game. */}
+        <Text style={{ fontFamily: fonts.body, fontSize: 13.5, color: colors.ink55, marginTop: 3, lineHeight: 18 }} numberOfLines={2}>{activity.golfBenefit}</Text>
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 9, flexWrap: 'wrap' }}>
           <Text style={pillStyle}>{activity.durationMin} min</Text>
           <Text style={pillStyle}>{difficultyLabel(activity)}</Text>
-          {activity.type !== 'drill' && <Text style={pillStyle}>{ACTIVITY_TYPE_LABEL[activity.type]}</Text>}
+          <Text style={pillStyle}>{activity.category}</Text>
         </View>
       </View>
       <ChevronRight size={20} color={colors.ink30} />
