@@ -53,7 +53,7 @@ export default function Progress({ streak, sessions }: { streak: number; session
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 58, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
       <View style={{ paddingHorizontal: 24 }}>
         <View style={{ marginBottom: 16 }}>
-          <Wordmark height={34} />
+          <Wordmark height={44} />
         </View>
         <Text style={{ fontFamily: fonts.body, fontSize: 15, color: colors.ink55, marginBottom: 2 }}>
           {hasData ? `${total} ${total === 1 ? 'session' : 'sessions'} logged` : 'Every session counts'}
