@@ -45,7 +45,10 @@ export async function loadProgress(): Promise<ProgressState> {
     const raw = await AsyncStorage.getItem(PROGRESS_KEY);
     if (!raw) return EMPTY_PROGRESS;
     const parsed = JSON.parse(raw);
-    return { ...EMPTY_PROGRESS, ...parsed, sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [] };
+    const sessions = Array.isArray(parsed.sessions)
+      ? parsed.sessions.map((s: any) => ({ ...s, scores: Array.isArray(s.scores) ? s.scores : [] }))
+      : [];
+    return { ...EMPTY_PROGRESS, ...parsed, sessions };
   } catch {
     return EMPTY_PROGRESS;
   }

@@ -1,11 +1,12 @@
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import Svg, { Polyline, Line, Circle } from 'react-native-svg';
 import { colors, fonts, radius, shadow } from '../theme';
 import { Icon } from '../Icon';
 import { Wordmark } from '../ui';
 import {
   SessionRecord, FEEL_LABEL, relativeDay, recentSessions, sessionsThisWeek,
-  totalSessions, totalMinutes,
+  totalSessions, totalMinutes, skillTrends, hasScores, SkillTrend,
 } from '../progress';
 import { PlanSession } from '../plan';
 
@@ -18,6 +19,7 @@ export default function Progress({ streak, sessions }: { streak: number; session
   const total = totalSessions(sessions);
   const minutes = totalMinutes(sessions);
   const recent = recentSessions(sessions, 8);
+  const trends = skillTrends(sessions);
   const hasData = total > 0;
 
   return (
@@ -64,6 +66,18 @@ export default function Progress({ streak, sessions }: { streak: number; session
             <StatCard label="Minutes trained" value={String(minutes)} unit="min" />
           </View>
 
+          {/* skill scores — real per-drill trends from logged results */}
+          {hasScores(sessions) && (
+            <>
+              <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 8 }}>
+                <Text style={{ fontFamily: fonts.displaySemi, fontSize: 13, color: colors.ink50, letterSpacing: 0.6, textTransform: 'uppercase' }}>Skill scores</Text>
+              </View>
+              <View style={{ paddingHorizontal: 20, gap: 12 }}>
+                {trends.map((t) => <SkillCard key={t.category} t={t} />)}
+              </View>
+            </>
+          )}
+
           {/* recent sessions */}
           <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 8 }}>
             <Text style={{ fontFamily: fonts.displaySemi, fontSize: 13, color: colors.ink50, letterSpacing: 0.6, textTransform: 'uppercase' }}>Recent sessions</Text>
@@ -89,6 +103,84 @@ export default function Progress({ streak, sessions }: { streak: number; session
         </>
       )}
     </ScrollView>
+  );
+}
+
+function Sparkline({ t, width, height }: { t: SkillTrend; width: number; height: number }) {
+  const vals = t.points.map((p) => p.value);
+  // Frame the chart around the data and the target so the target line is visible.
+  const lo = Math.min(...vals, t.target);
+  const hi = Math.max(...vals, t.target);
+  const span = hi - lo || 1;
+  const pad = 6;
+  const w = width - pad * 2;
+  const h = height - pad * 2;
+  const x = (i: number) => (t.points.length <= 1 ? pad + w / 2 : pad + (i / (t.points.length - 1)) * w);
+  // Higher-is-better → larger value sits higher (smaller y).
+  const y = (v: number) => {
+    const frac = (v - lo) / span; // 0..1 low..high
+    const up = t.better === 'lower' ? 1 - frac : frac;
+    return pad + (1 - up) * h;
+  };
+  const ty = y(t.target);
+  const pts = t.points.map((p, i) => `${x(i)},${y(p.value)}`).join(' ');
+  const last = t.points[t.points.length - 1];
+
+  return (
+    <Svg width={width} height={height}>
+      {/* target line */}
+      <Line x1={pad} y1={ty} x2={width - pad} y2={ty} stroke="rgba(20,20,20,0.28)" strokeWidth={1} strokeDasharray="3 3" />
+      {t.points.length > 1 && <Polyline points={pts} fill="none" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />}
+      {t.points.map((p, i) => (
+        <Circle key={i} cx={x(i)} cy={y(p.value)} r={i === t.points.length - 1 ? 3.5 : 2} fill={colors.ink} />
+      ))}
+      {/* emphasise the latest point */}
+      <Circle cx={x(t.points.length - 1)} cy={y(last.value)} r={5} fill="none" stroke={colors.ink} strokeWidth={1.5} />
+    </Svg>
+  );
+}
+
+function SkillCard({ t }: { t: SkillTrend }) {
+  const attempts = t.points.length;
+  const deltaTxt =
+    t.delta === null || t.delta === 0
+      ? null
+      : `${t.delta > 0 ? '+' : ''}${t.delta} vs last`;
+  const improving = t.delta !== null && (t.better === 'lower' ? t.delta < 0 : t.delta > 0);
+
+  return (
+    <View style={[{ backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.card, padding: 16 }, shadow.cardSoft]}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+        <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+          <Text style={{ fontFamily: fonts.displaySemi, fontSize: 16.5, color: colors.ink }} numberOfLines={1}>{t.category}</Text>
+          <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.ink50, marginTop: 1 }} numberOfLines={1}>{t.activityTitle}</Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={{ fontFamily: fonts.display, fontSize: 26, color: colors.ink, letterSpacing: -0.5 }}>
+            {t.latest}<Text style={{ fontFamily: fonts.bodyMed, fontSize: 14, color: colors.ink45 }}> / {t.target}</Text>
+          </Text>
+          {t.hitTarget && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+              <Icon name="target" size={13} color={colors.ink} />
+              <Text style={{ fontFamily: fonts.bodySemi, fontSize: 12, color: colors.ink }}>On target</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      <Sparkline t={t} width={280} height={56} />
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 12 }}>
+        <Text style={{ fontFamily: fonts.body, fontSize: 12.5, color: colors.ink50 }}>{attempts} {attempts === 1 ? 'attempt' : 'attempts'}</Text>
+        <Text style={{ fontFamily: fonts.body, fontSize: 12.5, color: colors.ink50 }}>Best {t.best}</Text>
+        {deltaTxt && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+            <Icon name={improving ? 'trendUp' : 'trendDown'} size={14} color={colors.ink} />
+            <Text style={{ fontFamily: fonts.bodySemi, fontSize: 12.5, color: colors.ink }}>{deltaTxt}</Text>
+          </View>
+        )}
+      </View>
+    </View>
   );
 }
 
