@@ -15,6 +15,7 @@ import { Sparkle } from '../Icon';
 import { Wordmark } from '../ui';
 import { ChatMessage, coachReply, coachIsLive, COACH_GREETING, COACH_SUGGESTIONS } from '../coach';
 import { Profile } from '../profile';
+import { SessionRecord } from '../progress';
 
 function SendGlyph({ color }: { color: string }) {
   return (
@@ -32,7 +33,7 @@ function CoachAvatar() {
   );
 }
 
-export default function Coach({ profile, streak }: { profile: Profile; streak: number }) {
+export default function Coach({ profile, streak, sessions }: { profile: Profile; streak: number; sessions: SessionRecord[] }) {
   const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', text: COACH_GREETING }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,7 +50,7 @@ export default function Coach({ profile, streak }: { profile: Profile; streak: n
     setLoading(true);
     scrollToEnd();
     try {
-      const reply = await coachReply(next, profile, streak);
+      const reply = await coachReply(next, profile, streak, sessions);
       setMessages((m) => [...m, { role: 'assistant', text: reply }]);
     } catch (e: any) {
       setMessages((m) => [...m, { role: 'assistant', text: `Sorry — I couldn't reach the coaching service just now. (${e?.message ?? 'network error'})` }]);

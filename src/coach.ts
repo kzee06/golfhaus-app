@@ -8,6 +8,7 @@
 
 import { ACTIVITIES, ACTIVITY_TYPE_LABEL } from './content';
 import { Profile, LEVEL_LABEL, goalLabel, equipmentLabel, locationLabel, bodyAreaLabel, optionLabel } from './profile';
+import { SessionRecord, recentSessions, sessionsThisWeek, relativeDay, FEEL_LABEL } from './progress';
 
 export type ChatRole = 'user' | 'assistant';
 export type ChatMessage = { role: ChatRole; text: string };
@@ -29,7 +30,29 @@ function profileLine(p: Profile): string {
   return `Level: ${level}. Goals: ${goals}. Scoring: ${hcp}. Practises: ${practice}. Trains at: ${where}. Equipment: ${equip}. Preferred difficulty: ${diff}. Tight areas: ${tight}.${excl}`;
 }
 
-function buildSystemPrompt(p: Profile): string {
+// A compact, LLM-friendly summary of what the golfer has actually done, so the
+// coach can reference their real training instead of talking in the abstract.
+function historyLine(sessions: SessionRecord[], streak: number): string {
+  if (sessions.length === 0) return 'No sessions logged yet — this is a fresh start, so encourage them to complete their first plan.';
+  const now = new Date();
+  const week = sessionsThisWeek(sessions, now);
+  const recent = recentSessions(sessions, 5);
+  const list = recent
+    .map((r) => {
+      const feel = r.feel ? `, felt ${FEEL_LABEL[r.feel].toLowerCase()}` : '';
+      return `${relativeDay(r.date, now)}: ${r.focus} (${r.activityCount} ${r.activityCount === 1 ? 'activity' : 'activities'}, ${r.totalMin} min${feel})`;
+    })
+    .join('; ');
+  const feels = recent.map((r) => r.feel).filter(Boolean);
+  const easy = feels.filter((f) => f === 'easy').length;
+  const tough = feels.filter((f) => f === 'tough').length;
+  let trend = '';
+  if (easy >= 2 && tough === 0) trend = ' They have been finding sessions too easy lately — they are ready for more challenge.';
+  else if (tough >= 2 && easy === 0) trend = ' Sessions have felt tough lately — help them keep it sustainable, do not pile on.';
+  return `Current streak: ${streak} ${streak === 1 ? 'day' : 'days'}. Sessions this week: ${week}. Recent sessions — ${list}.${trend}`;
+}
+
+function buildSystemPrompt(p: Profile, sessions: SessionRecord[], streak: number): string {
   const catalog = ACTIVITIES
     .map((a) => `- ${a.title} (${ACTIVITY_TYPE_LABEL[a.type]}/${a.category}, ${a.durationMin} min): ${a.problem}`)
     .join('\n');
@@ -39,11 +62,15 @@ function buildSystemPrompt(p: Profile): string {
 The golfer:
 ${profileLine(p)}
 
+Their recent training (reference it — this is what makes you their coach, not a generic chatbot):
+${historyLine(sessions, streak)}
+
 Voice and format:
-- Friendly, concrete, and motivating — never condescending. Celebrate effort.
+- Friendly, concrete, and motivating — never condescending. Celebrate effort and streaks.
+- Use their history: acknowledge what they've done, build on it, and respond to how sessions felt. If they've been on a streak, recognise it. If sessions felt tough, ease off; if too easy, push a little.
 - Keep replies short: 2-4 tight paragraphs at most, or a short list. No walls of text.
 - Plain text only. No markdown headers, no emoji.
-- Recommend specific GolfHaus activities from the library below by name, and say briefly why. Only recommend things the golfer can actually do given their equipment, location, and any movements they said to avoid.
+- Recommend specific GolfHaus activities from the library below by name, and say briefly why. Only recommend things the golfer can actually do given their equipment, location, and any movements they said to avoid. Prefer variety over repeating the exact drills they did most recently.
 - Balance skill work with the golf body — mobility, strength, and recovery matter for their game.
 - You can also answer questions about how the app works (Today's plan, Library, sessions, progress, streaks).
 - Do not give medical advice or diagnose injuries; if they mention pain, suggest they ease off and see a professional.
@@ -52,7 +79,7 @@ GolfHaus activity library:
 ${catalog}`;
 }
 
-async function callClaude(history: ChatMessage[], profile: Profile): Promise<string> {
+async function callClaude(history: ChatMessage[], profile: Profile, sessions: SessionRecord[], streak: number): Promise<string> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -64,7 +91,7 @@ async function callClaude(history: ChatMessage[], profile: Profile): Promise<str
     body: JSON.stringify({
       model: 'claude-opus-4-8',
       max_tokens: 1024,
-      system: buildSystemPrompt(profile),
+      system: buildSystemPrompt(profile, sessions, streak),
       messages: history.map((m) => ({ role: m.role, content: m.text })),
     }),
   });
@@ -83,9 +110,10 @@ async function callClaude(history: ChatMessage[], profile: Profile): Promise<str
 
 // Scripted fallback used when no API key is set. Keyed loosely to intent so it
 // still feels helpful and on-brand without any network call or cost.
-function demoReply(history: ChatMessage[], streak: number): string {
+function demoReply(history: ChatMessage[], streak: number, sessions: SessionRecord[]): string {
   const last = [...history].reverse().find((m) => m.role === 'user')?.text.toLowerCase() ?? '';
   const has = (...w: string[]) => w.some((x) => last.includes(x));
+  const lastSession = sessions[0];
 
   if (has('tight', 'stiff', 'mobility', 'flexible', 'hip', 'back', 'sore', 'loosen')) {
     return "Let's free that up. Start with 90/90 Hip Switches and Open Book Thoracic Rotation — five minutes each, gentle and pain-free. Tight hips and a stiff upper back quietly cap your turn, so a little daily mobility does more for your swing than another bucket of balls. If anything sharpens into real pain, ease off and get it checked.";
@@ -109,17 +137,21 @@ function demoReply(history: ChatMessage[], streak: number): string {
     return "Recovery is training too. After a round or a hard session, run the Golfer's Foam Roll Flow and the Post-Round Recovery — gentle movement and slow breathing to bounce back for tomorrow. Keep it easy; if you're wrecked, rest beats grinding.";
   }
   if (has('today', 'practice', 'plan', 'what should i', 'do')) {
-    return `Here's a solid 20 minutes: a three-minute mobility warmup (90/90 Hip Switches), then the Landing Spot Ladder for your short game, and finish with The Clock Drill for putting pace. You're on a ${streak}-day streak — keep it rolling.`;
+    const lastBit = lastSession
+      ? ` Last time you worked on ${lastSession.focus.toLowerCase()}${lastSession.feel === 'tough' ? ' and it felt tough, so we\'ll keep today manageable' : lastSession.feel === 'easy' ? ' and breezed it, so let\'s add a little challenge' : ''} — nice to build on that.`
+      : '';
+    const streakBit = streak > 0 ? ` You're on a ${streak}-day streak — keep it rolling.` : '';
+    return `Here's a solid 20 minutes: a three-minute mobility warmup (90/90 Hip Switches), then the Landing Spot Ladder for your short game, and finish with The Clock Drill for putting pace.${lastBit}${streakBit}`;
   }
   return "I'm your GolfHaus coach — I can help with your game (putting, chipping, driving, staying straight) and your golf body (mobility, strength, warmups, recovery). Tell me what you're working on, or what's feeling tight, and I'll point you to the right activities.";
 }
 
-export async function coachReply(history: ChatMessage[], profile: Profile, streak: number): Promise<string> {
+export async function coachReply(history: ChatMessage[], profile: Profile, streak: number, sessions: SessionRecord[] = []): Promise<string> {
   if (!coachIsLive) {
     await new Promise((r) => setTimeout(r, 500));
-    return demoReply(history, streak);
+    return demoReply(history, streak, sessions);
   }
-  return callClaude(history, profile);
+  return callClaude(history, profile, sessions, streak);
 }
 
 export const COACH_GREETING =

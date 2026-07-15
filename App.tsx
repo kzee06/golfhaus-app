@@ -209,7 +209,7 @@ export default function App() {
               />
             )}
             {!overlay && tab === 'drills' && <Library onOpen={(id) => { setActiveActivityId(id); setOverlay('activity'); }} />}
-            {!overlay && tab === 'coach' && <Coach profile={profile} streak={streak} />}
+            {!overlay && tab === 'coach' && <Coach profile={profile} streak={streak} sessions={progress.sessions} />}
             {!overlay && tab === 'progress' && <Progress streak={streak} sessions={progress.sessions} />}
             {!overlay && tab === 'you' && <You profile={profile} onRestart={restart} />}
 
