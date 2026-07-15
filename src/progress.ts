@@ -14,6 +14,7 @@ export type SessionRecord = {
   date: string; // ISO timestamp of completion
   kind: PlanSession['kind'];
   focus: string;
+  activityIds: string[];
   activityTitles: string[];
   activityCount: number;
   totalMin: number;
@@ -31,6 +32,7 @@ export function recordFromSession(session: PlanSession, feel: Feel, id: string, 
     date: iso,
     kind: session.kind,
     focus: session.focus,
+    activityIds: session.activities.map((a) => a.id),
     activityTitles: session.activities.map((a) => a.title),
     activityCount: session.activities.length,
     totalMin: session.totalMin,

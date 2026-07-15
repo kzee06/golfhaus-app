@@ -6,7 +6,7 @@ import { Wordmark, PrimaryButton, CoachLabel } from '../ui';
 import { Profile } from '../profile';
 import { Activity, ACTIVITY_GLYPH, ACTIVITY_TYPE_LABEL } from '../content';
 import { PlanSession, todaysSession, shorterSession, bodySession, locationLabel } from '../plan';
-import { dayKey } from '../progress';
+import { dayKey, SessionRecord } from '../progress';
 
 const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -35,6 +35,7 @@ export default function Today({
   name,
   streak,
   practicedDays,
+  history,
   onOpenActivity,
   onStart,
   onCoach,
@@ -44,6 +45,7 @@ export default function Today({
   name: string;
   streak: number;
   practicedDays: string[];
+  history: SessionRecord[];
   onOpenActivity: (id: string) => void;
   onStart: (session: PlanSession) => void;
   onCoach: () => void;
@@ -53,11 +55,11 @@ export default function Today({
 
   const sessions = useMemo(
     () => ({
-      balanced: todaysSession(profile, seed),
-      quick: shorterSession(profile, seed),
-      body: bodySession(profile, seed),
+      balanced: todaysSession(profile, seed, history),
+      quick: shorterSession(profile, seed, history),
+      body: bodySession(profile, seed, history),
     }),
-    [profile, seed],
+    [profile, seed, history],
   );
 
   const [kind, setKind] = useState<Kind>('balanced');
