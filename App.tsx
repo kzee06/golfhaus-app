@@ -34,7 +34,7 @@ import ActivityDetail from './src/screens/ActivityDetail';
 import DrillDetail from './src/screens/DrillDetail';
 import Session from './src/screens/Session';
 import Done from './src/screens/Done';
-import SessionPlayer from './src/screens/SessionPlayer';
+import SessionPlayer, { SessionSummary } from './src/screens/SessionPlayer';
 import WeeklyPlan from './src/screens/WeeklyPlan';
 import { activityById } from './src/content';
 import { PlanSession, todaysSession } from './src/plan';
@@ -152,10 +152,10 @@ export default function App() {
     setOverlay(null);
   };
 
-  // Record a completed guided session, then return home.
-  const finishSession = (session: PlanSession, feel: string | null) => {
+  // Record a completed guided session (feel + any drill scores), then return home.
+  const finishSession = (session: PlanSession, summary: SessionSummary) => {
     const id = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
-    const rec = recordFromSession(session, feel as any, id, new Date().toISOString());
+    const rec = recordFromSession(session, summary.feel as any, summary.scores, id, new Date().toISOString());
     setProgress((pr) => addSession(pr, rec));
   };
 
@@ -254,7 +254,7 @@ export default function App() {
                 name={profile.name}
                 streak={streak}
                 onExit={() => { setOverlay(null); setActiveSession(null); setTab('today'); }}
-                onFinish={(summary) => finishSession(activeSession, summary.feel)}
+                onFinish={(summary) => finishSession(activeSession, summary)}
               />
             )}
 

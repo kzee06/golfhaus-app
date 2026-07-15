@@ -7,6 +7,18 @@ import { PlanSession } from './plan';
 
 export type Feel = 'tough' | 'right' | 'easy' | null;
 
+// A logged result for a measurable drill (e.g. "7 of 10 putts finished close").
+// Self-contained so trends never have to re-resolve the drill's scoring config.
+export type ScoreEntry = {
+  activityId: string;
+  activityTitle: string;
+  category: string;
+  value: number;
+  target: number;
+  unit: string;
+  better: 'higher' | 'lower';
+};
+
 // One finished session. Self-contained so the Progress log never has to
 // re-resolve activities from the content library.
 export type SessionRecord = {
@@ -19,14 +31,16 @@ export type SessionRecord = {
   activityCount: number;
   totalMin: number;
   feel: Feel;
+  scores: ScoreEntry[];
 };
 
 export type ProgressState = { sessions: SessionRecord[] };
 
 export const EMPTY_PROGRESS: ProgressState = { sessions: [] };
 
-// Build a record from a played session + the golfer's post-session feel.
-export function recordFromSession(session: PlanSession, feel: Feel, id: string, iso: string): SessionRecord {
+// Build a record from a played session + the golfer's post-session feel and any
+// drill scores they logged.
+export function recordFromSession(session: PlanSession, feel: Feel, scores: ScoreEntry[], id: string, iso: string): SessionRecord {
   return {
     id,
     date: iso,
@@ -37,6 +51,7 @@ export function recordFromSession(session: PlanSession, feel: Feel, id: string, 
     activityCount: session.activities.length,
     totalMin: session.totalMin,
     feel,
+    scores,
   };
 }
 
@@ -113,3 +128,64 @@ export function relativeDay(iso: string, today: Date): string {
 export const FEEL_LABEL: Record<Exclude<Feel, null>, string> = {
   tough: 'Tough', right: 'Just right', easy: 'Too easy',
 };
+
+// ─── drill scoring ───────────────────────────────────────────────────────────
+
+// A single logged score with the day it was recorded.
+export type ScorePoint = { date: string; value: number; target: number; unit: string; better: 'higher' | 'lower' };
+
+// A drill's scores over time, oldest → newest, with a light trend read.
+export type SkillTrend = {
+  category: string;
+  activityTitle: string;
+  unit: string;
+  target: number;
+  better: 'higher' | 'lower';
+  points: ScorePoint[];
+  latest: number;
+  best: number;
+  hitTarget: boolean;
+  delta: number | null; // latest vs previous attempt (null if only one)
+};
+
+const scoresOf = (r: SessionRecord): ScoreEntry[] => r.scores ?? [];
+
+// All logged scores, grouped by drill category, each series oldest → newest.
+export function skillTrends(sessions: SessionRecord[]): SkillTrend[] {
+  // Attach each score to its session date, then group by category.
+  const rows = sessions.flatMap((r) => scoresOf(r).map((s) => ({ ...s, date: r.date })));
+  const byCat = new Map<string, typeof rows>();
+  for (const row of rows) {
+    const arr = byCat.get(row.category) ?? [];
+    arr.push(row);
+    byCat.set(row.category, arr);
+  }
+
+  const trends: SkillTrend[] = [];
+  for (const [category, arr] of byCat) {
+    const sorted = [...arr].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const points: ScorePoint[] = sorted.map((s) => ({ date: s.date, value: s.value, target: s.target, unit: s.unit, better: s.better }));
+    const last = sorted[sorted.length - 1];
+    const prev = sorted.length > 1 ? sorted[sorted.length - 2] : null;
+    const values = sorted.map((s) => s.value);
+    const better = last.better;
+    const best = better === 'lower' ? Math.min(...values) : Math.max(...values);
+    const hitTarget = better === 'lower' ? last.value <= last.target : last.value >= last.target;
+    trends.push({
+      category,
+      activityTitle: last.activityTitle,
+      unit: last.unit,
+      target: last.target,
+      better,
+      points,
+      latest: last.value,
+      best,
+      hitTarget,
+      delta: prev ? last.value - prev.value : null,
+    });
+  }
+  // Most recently practised skill first.
+  return trends.sort((a, b) => new Date(b.points[b.points.length - 1].date).getTime() - new Date(a.points[a.points.length - 1].date).getTime());
+}
+
+export const hasScores = (sessions: SessionRecord[]): boolean => sessions.some((r) => scoresOf(r).length > 0);

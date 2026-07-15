@@ -6,8 +6,15 @@ import { PrimaryButton } from '../ui';
 import { TimerRing } from '../Charts';
 import { Activity, ACTIVITY_TYPE_LABEL } from '../content';
 import { PlanSession } from '../plan';
+import { ScoreEntry } from '../progress';
 
-export type SessionSummary = { completed: number; total: number; totalMin: number; feel: string | null };
+export type SessionSummary = { completed: number; total: number; totalMin: number; feel: string | null; scores: ScoreEntry[] };
+
+// Highest loggable value for a drill, parsed from its scoring unit ("of 10").
+const scoreMax = (unit: string): number => {
+  const m = /of\s+(\d+)/i.exec(unit);
+  return m ? Number(m[1]) : 10;
+};
 
 const fmt = (sec: number) => {
   const m = Math.floor(sec / 60);
@@ -42,6 +49,10 @@ export default function SessionPlayer({
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(true);
   const [feel, setFeel] = useState<string | null>(null);
+  const [scores, setScores] = useState<Record<string, number>>({});
+
+  // Drills in this session that can be scored (putting gate, landing zone, …).
+  const scorable = acts.filter((a) => a.scoring);
 
   const current: Activity | undefined = acts[index];
   const durationSec = current ? Math.max(1, current.durationMin * 60) : 1;
@@ -64,8 +75,19 @@ export default function SessionPlayer({
   };
 
   const finish = () => {
+    const scoreEntries: ScoreEntry[] = scorable
+      .filter((a) => scores[a.id] !== undefined)
+      .map((a) => ({
+        activityId: a.id,
+        activityTitle: a.title,
+        category: a.category,
+        value: scores[a.id],
+        target: a.scoring!.target,
+        unit: a.scoring!.unit,
+        better: a.scoring!.better,
+      }));
     setStage('done');
-    onFinish({ completed: acts.length, total: acts.length, totalMin: session.totalMin, feel });
+    onFinish({ completed: acts.length, total: acts.length, totalMin: session.totalMin, feel, scores: scoreEntries });
   };
 
   if (stage === 'done') {
@@ -95,6 +117,37 @@ export default function SessionPlayer({
               );
             })}
           </View>
+
+          {/* drill scoring — log measurable results to track skill trends */}
+          {scorable.length > 0 && (
+            <View style={{ marginBottom: 30 }}>
+              <Text style={{ fontFamily: fonts.display, fontSize: 20, color: colors.ink, marginBottom: 4, letterSpacing: -0.4 }}>Log your results</Text>
+              <Text style={{ fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.ink55, marginBottom: 18 }}>Optional — but it's how your Progress charts learn what's working.</Text>
+              <View style={{ gap: 18 }}>
+                {scorable.map((a) => {
+                  const max = scoreMax(a.scoring!.unit);
+                  const val = scores[a.id];
+                  return (
+                    <View key={a.id}>
+                      <Text style={{ fontFamily: fonts.displaySemi, fontSize: 15, color: colors.ink }}>{a.title}</Text>
+                      <Text style={{ fontFamily: fonts.body, fontSize: 13.5, color: colors.ink50, marginBottom: 10 }}>{a.scoring!.prompt} Target: {a.scoring!.target} {a.scoring!.unit}.</Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+                        {Array.from({ length: max + 1 }, (_, n) => {
+                          const sel = val === n;
+                          return (
+                            <Pressable key={n} onPress={() => setScores((s) => ({ ...s, [a.id]: n }))} style={{ width: 40, height: 40, borderRadius: 12, borderWidth: 1, borderColor: sel ? colors.ink : colors.border12, backgroundColor: sel ? colors.ink : colors.white, alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={{ fontFamily: fonts.display, fontSize: 15, color: sel ? colors.white : colors.ink }}>{n}</Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
           <PrimaryButton label="Finish session" onPress={finish} disabled={!feel} />
         </ScrollView>
       </View>
