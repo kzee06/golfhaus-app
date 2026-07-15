@@ -4,13 +4,14 @@ import { colors, fonts, radius, shadow } from './theme';
 import { ASSETS } from './data';
 import { PlayIcon } from './Icon';
 
-export function Wordmark({ height = 26, white = false }: { height?: number; white?: boolean }) {
-  // Raster wordmark keeps aspect ~ 224/38. Use exact source aspect via resizeMode.
+export function Wordmark({ height = 34, white = false }: { height?: number; white?: boolean }) {
+  // Source asset is 756×270 (aspect 2.8). Matching the box to that aspect keeps
+  // the mark flush-left instead of centering it inside an oversized box.
   return (
     <Image
       source={white ? ASSETS.wordmarkWhite : ASSETS.wordmarkDark}
       resizeMode="contain"
-      style={{ height, width: height * 6.6 }}
+      style={{ height, width: height * 2.8 }}
     />
   );
 }
