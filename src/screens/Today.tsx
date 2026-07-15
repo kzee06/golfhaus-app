@@ -73,7 +73,7 @@ export default function Today({
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 58, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
       <View style={{ paddingHorizontal: 24 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <Wordmark height={26} />
+          <Wordmark height={34} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.fill06, borderWidth: 1, borderColor: colors.border12, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 14 }}>
             <Icon name="flame" size={16} color={colors.ink} />
             <Text style={{ fontFamily: fonts.display, fontSize: 16, color: colors.ink }}>{streak}</Text>

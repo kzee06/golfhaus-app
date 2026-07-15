@@ -53,7 +53,7 @@ export default function Progress({ streak, sessions }: { streak: number; session
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 58, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
       <View style={{ paddingHorizontal: 24 }}>
         <View style={{ marginBottom: 16 }}>
-          <Wordmark height={26} />
+          <Wordmark height={34} />
         </View>
         <Text style={{ fontFamily: fonts.body, fontSize: 15, color: colors.ink55, marginBottom: 2 }}>
           {hasData ? `${total} ${total === 1 ? 'session' : 'sessions'} logged` : 'Every session counts'}
@@ -107,6 +107,19 @@ export default function Progress({ streak, sessions }: { streak: number; session
                 <Legend swatch={<View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: colors.ink }} />} label="Now" />
                 <Legend swatch={<View style={{ width: 12, height: 3, borderRadius: 2, backgroundColor: 'rgba(20,20,20,0.35)' }} />} label="First attempt" />
               </View>
+            </View>
+          )}
+
+          {/* radar teaser — visible before there are enough scores to plot it */}
+          {!showRadar && (
+            <View style={[{ marginHorizontal: 20, marginTop: 22, padding: 20, borderRadius: 24, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center' }, shadow.card]}>
+              <Text style={{ fontFamily: fonts.displaySemi, fontSize: 16, color: colors.ink, alignSelf: 'flex-start', marginBottom: 14 }}>Your game, by area</Text>
+              <View style={{ opacity: 0.35, marginBottom: 12 }}>
+                <SkillRadar axes={[{ label: 'Putt', now: 0.55, then: 0.3 }, { label: 'Irons', now: 0.7, then: 0.45 }, { label: 'Chip', now: 0.5, then: 0.35 }, { label: 'Drive', now: 0.62, then: 0.4 }]} size={220} />
+              </View>
+              <Text style={{ fontFamily: fonts.body, fontSize: 14.5, lineHeight: 21, color: colors.ink55, textAlign: 'center', maxWidth: 300 }}>
+                Log a score on <Text style={{ fontFamily: fonts.bodySemi, color: colors.ink }}>3 different skills</Text> to build your strength web. {axes.length} of 3 so far — you'll get the option to log results when you finish a drill in a session.
+              </Text>
             </View>
           )}
 

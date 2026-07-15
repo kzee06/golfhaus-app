@@ -67,7 +67,7 @@ export default function Coach({ profile, streak, sessions }: { profile: Profile;
       {/* header */}
       <View style={{ paddingTop: 58, paddingHorizontal: 24, paddingBottom: 12 }}>
         <View style={{ marginBottom: 16 }}>
-          <Wordmark height={26} />
+          <Wordmark height={34} />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View>

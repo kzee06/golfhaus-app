@@ -27,7 +27,7 @@ export default function You({ profile, onRestart }: { profile: Profile; onRestar
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 58, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
       <View style={{ paddingHorizontal: 24 }}>
         <View style={{ marginBottom: 16 }}>
-          <Wordmark height={26} />
+          <Wordmark height={34} />
         </View>
         <Text style={{ fontFamily: fonts.display, fontSize: 30, letterSpacing: -0.9, color: colors.ink, marginBottom: 20 }}>You</Text>
       </View>

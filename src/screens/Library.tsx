@@ -75,7 +75,7 @@ export default function Library({ onOpen }: { onOpen: (id: string) => void }) {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 58, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         <View style={{ paddingHorizontal: 24 }}>
           <View style={{ marginBottom: 16 }}>
-            <Wordmark height={26} />
+            <Wordmark height={34} />
           </View>
           <Text style={{ fontFamily: fonts.body, fontSize: 15, color: colors.ink55, marginBottom: 2 }}>{list.length} activities for your golf</Text>
           <Text style={{ fontFamily: fonts.display, fontSize: 30, letterSpacing: -0.9, color: colors.ink }}>Library</Text>
