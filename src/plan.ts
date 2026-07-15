@@ -12,7 +12,7 @@ import {
   fitsEquipment, MovementExclusion,
 } from './content';
 import { Profile } from './profile';
-import type { SessionRecord } from './progress';
+import type { SessionRecord, Feel } from './progress';
 
 export type PlanSession = {
   kind: 'balanced' | 'quick' | 'body';
@@ -126,7 +126,11 @@ function focusSkillsFor(p: Profile): string[] {
   return [...new Set(out)];
 }
 
-export function buildSession(p: Profile, kind: PlanSession['kind'], seed: number, history: SessionRecord[] = []): PlanSession {
+const rotate = <T>(arr: T[], n: number): T[] => (arr.length ? arr.slice(n % arr.length).concat(arr.slice(0, n % arr.length)) : arr);
+
+// `focusIndex` rotates which of the golfer's focus skills leads the session —
+// used by the weekly plan to give each skill day a distinct focus.
+export function buildSession(p: Profile, kind: PlanSession['kind'], seed: number, history: SessionRecord[] = [], focusIndex = 0): PlanSession {
   const equip = p.equipment.length ? p.equipment : (['clubs', 'balls'] as EquipmentKey[]);
   const locs = p.locations;
   const ex = p.exclusions;
@@ -151,7 +155,7 @@ export function buildSession(p: Profile, kind: PlanSession['kind'], seed: number
   const tightMob = byType('mobility').filter((a) => a.bodyAreas.some((b) => p.tightAreas.includes(b)));
   add(pick(tightMob, seed, used, avoid) || pick(byType('warmup'), seed, used, avoid) || pick(byType('mobility'), seed, used, avoid));
 
-  const focusSkills = focusSkillsFor(p);
+  const focusSkills = rotate(focusSkillsFor(p), focusIndex);
 
   if (kind === 'body') {
     // Golf-body day: mobility + strength/power + a stretch.
@@ -160,10 +164,12 @@ export function buildSession(p: Profile, kind: PlanSession['kind'], seed: number
     add(pick(strengthPool, seed, used, avoid));
     add(pick([...byType('stretch'), ...byType('yoga'), ...byType('recovery')], seed, used, avoid));
   } else {
-    // Skill-led day.
+    // Skill-led day. Lead with the rotated primary focus, then fill.
     const skillPool = byType('drill').filter(levelOk);
+    const primaryCat = focusSkills[0];
+    const primaryFocused = primaryCat ? skillPool.filter((a) => a.category === primaryCat) : [];
     const focused = skillPool.filter((a) => focusSkills.includes(a.category));
-    add(pick(focused.length ? focused : skillPool, seed, used, avoid));
+    add(pick(primaryFocused.length ? primaryFocused : focused.length ? focused : skillPool, seed, used, avoid));
     if (kind === 'balanced') {
       // a second skill drill from a secondary focus if there's room
       add(pick(focused.length ? focused : skillPool, seed + 2, used, avoid));
@@ -229,3 +235,101 @@ export function bodySession(p: Profile, seed: number, history: SessionRecord[] =
 }
 
 export const locationLabel = (l: LocationKey | null): string => (l ? LOCATION_LABEL[l] : 'Anywhere');
+
+// ─── Weekly plan ─────────────────────────────────────────────────────────────
+// A 7-day outlook (Mon–Sun) that structures the week: skill days, a golf-body
+// day, a lighter day, and rest — scaled to how often the golfer practises, with
+// each skill day rotating to a different focus so the week stays varied. Past
+// days reflect what was actually logged.
+
+export type DayKind = 'balanced' | 'quick' | 'body' | 'rest';
+
+export type WeekDay = {
+  dateKey: string; // local calendar-day key (matches progress.dayKey)
+  weekday: number; // 0 Sun … 6 Sat
+  dateNum: number; // day of month
+  isToday: boolean;
+  isPast: boolean;
+  kind: DayKind;
+  focus: string;
+  totalMin: number;
+  activityCount: number;
+  done: boolean; // a session was logged that day
+  doneFocus?: string;
+  doneFeel?: Feel;
+};
+
+// Training days per week from the onboarding practice frequency.
+const PRACTICE_DAYS: Record<string, number> = { rarely: 2, occasionally: 3, weekly: 4, mostDays: 6 };
+
+// Weekly templates, indexed Mon(0) … Sun(6). Each has exactly N training days,
+// always including a golf-body day and at least one rest day.
+const WEEK_TEMPLATES: Record<number, DayKind[]> = {
+  2: ['balanced', 'rest', 'rest', 'body', 'rest', 'rest', 'rest'],
+  3: ['balanced', 'rest', 'body', 'rest', 'balanced', 'rest', 'rest'],
+  4: ['balanced', 'body', 'rest', 'balanced', 'rest', 'quick', 'rest'],
+  5: ['balanced', 'body', 'rest', 'balanced', 'quick', 'body', 'rest'],
+  6: ['balanced', 'body', 'balanced', 'quick', 'body', 'balanced', 'rest'],
+};
+
+const wkStartOfDay = (d: Date): Date => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const wkDayKey = (d: Date): string => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+const wkAddDays = (d: Date, n: number): Date => { const c = new Date(d); c.setDate(c.getDate() + n); return c; };
+function wkMonday(d: Date): Date {
+  const s = wkStartOfDay(d);
+  return wkAddDays(s, -((s.getDay() + 6) % 7));
+}
+
+export function weeklyPlan(p: Profile, history: SessionRecord[], today: Date): WeekDay[] {
+  const days = PRACTICE_DAYS[p.practiceFreq ?? ''] ?? 4;
+  const template = WEEK_TEMPLATES[days] ?? WEEK_TEMPLATES[4];
+  const monday = wkMonday(today);
+  const weekSeed = Math.floor(monday.getTime() / 86_400_000);
+  const todayKey = wkDayKey(wkStartOfDay(today));
+  const todayMs = wkStartOfDay(today).getTime();
+
+  // Most-recent logged session per calendar day.
+  const doneByDay = new Map<string, SessionRecord>();
+  for (const r of history) {
+    const k = wkDayKey(new Date(r.date));
+    if (!doneByDay.has(k)) doneByDay.set(k, r); // history is newest-first
+  }
+
+  let focusCursor = 0; // rotates the focus across skill days only
+  return template.map((kind, i) => {
+    const date = wkAddDays(monday, i);
+    const dateKey = wkDayKey(date);
+    const isPast = date.getTime() < todayMs;
+    const rec = doneByDay.get(dateKey);
+
+    let focus = 'Rest & recover';
+    let totalMin = 0;
+    let activityCount = 0;
+    if (kind !== 'rest') {
+      const fi = kind === 'body' ? 0 : focusCursor++;
+      const s = buildSession(p, kind, weekSeed + i, history, fi);
+      focus = s.focus;
+      totalMin = s.totalMin;
+      activityCount = s.activities.length;
+    }
+
+    return {
+      dateKey,
+      weekday: date.getDay(),
+      dateNum: date.getDate(),
+      isToday: dateKey === todayKey,
+      isPast,
+      kind,
+      focus,
+      totalMin,
+      activityCount,
+      done: !!rec,
+      doneFocus: rec?.focus,
+      doneFeel: rec?.feel,
+    };
+  });
+}
+
+export const KIND_LABEL: Record<DayKind, string> = {
+  balanced: 'Skill + body', quick: 'Quick session', body: 'Golf body', rest: 'Rest day',
+};

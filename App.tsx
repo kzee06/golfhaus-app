@@ -35,11 +35,12 @@ import DrillDetail from './src/screens/DrillDetail';
 import Session from './src/screens/Session';
 import Done from './src/screens/Done';
 import SessionPlayer from './src/screens/SessionPlayer';
+import WeeklyPlan from './src/screens/WeeklyPlan';
 import { activityById } from './src/content';
-import { PlanSession } from './src/plan';
+import { PlanSession, todaysSession } from './src/plan';
 
 type Phase = 'onboarding' | 'app';
-type Overlay = null | 'drill' | 'activity' | 'session' | 'player';
+type Overlay = null | 'drill' | 'activity' | 'session' | 'player' | 'week';
 type Mode = 'timing' | 'logging' | 'done';
 
 const N = STEPS.length; // number of onboarding question steps
@@ -158,6 +159,13 @@ export default function App() {
     setProgress((pr) => addSession(pr, rec));
   };
 
+  // Launch today's recommended session (used by the weekly plan's "Start").
+  const startToday = () => {
+    const seed = Math.floor(Date.now() / 86_400_000);
+    const s = todaysSession(profile, seed, progress.sessions);
+    if (s.activities.length) { setActiveSession(s); setOverlay('player'); }
+  };
+
   const openDrill = (id: string) => { setActiveId(id); setOverlay('drill'); };
   const startSession = () => { setOverlay('session'); setMode('timing'); setElapsed(0); setRunning(true); setLogMade(null); setLogFeel(null); };
   const submitLog = () => { if (logMade === null || !logFeel) return; setMode('done'); };
@@ -205,6 +213,7 @@ export default function App() {
                 history={progress.sessions}
                 onOpenActivity={(id) => { setActiveActivityId(id); setOverlay('activity'); }}
                 onStart={(s) => { if (s.activities.length) { setActiveSession(s); setOverlay('player'); } }}
+                onOpenWeek={() => setOverlay('week')}
                 onCoach={() => setTab('coach')}
               />
             )}
@@ -246,6 +255,15 @@ export default function App() {
                 streak={streak}
                 onExit={() => { setOverlay(null); setActiveSession(null); setTab('today'); }}
                 onFinish={(summary) => finishSession(activeSession, summary.feel)}
+              />
+            )}
+
+            {overlay === 'week' && (
+              <WeeklyPlan
+                profile={profile}
+                history={progress.sessions}
+                onClose={() => setOverlay(null)}
+                onStartToday={() => { setOverlay(null); startToday(); }}
               />
             )}
 

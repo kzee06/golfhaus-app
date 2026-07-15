@@ -38,6 +38,7 @@ export default function Today({
   history,
   onOpenActivity,
   onStart,
+  onOpenWeek,
   onCoach,
 }: {
   profile: Profile;
@@ -47,6 +48,7 @@ export default function Today({
   practicedDays: string[];
   history: SessionRecord[];
   onOpenActivity: (id: string) => void;
+  onOpenWeek: () => void;
   onStart: (session: PlanSession) => void;
   onCoach: () => void;
 }) {
@@ -93,8 +95,17 @@ export default function Today({
         <ChevronRight size={20} color={colors.ink30} />
       </Pressable>
 
+      {/* this-week header — opens the full weekly plan */}
+      <Pressable onPress={onOpenWeek} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 20 }}>
+        <Text style={{ fontFamily: fonts.displaySemi, fontSize: 13, color: colors.ink50, letterSpacing: 0.6, textTransform: 'uppercase' }}>This week</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          <Text style={{ fontFamily: fonts.bodySemi, fontSize: 13.5, color: colors.ink55 }}>Full plan</Text>
+          <ChevronRight size={16} color={colors.ink40} />
+        </View>
+      </Pressable>
+
       {/* week strip */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 2 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 2 }}>
         {week.map((d, i) => (
           <View key={i} style={[{ width: 50, height: 68, borderRadius: 18, alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: d.isToday ? colors.ink : colors.white, borderWidth: 1, borderColor: d.isToday ? colors.ink : colors.border08 }, d.isToday ? shadow.card : shadow.cardSoft]}>
             <Text style={{ fontSize: 11, fontFamily: fonts.displaySemi, color: d.isToday ? 'rgba(255,255,255,0.65)' : colors.ink40, letterSpacing: 0.3 }}>{d.dow}</Text>
