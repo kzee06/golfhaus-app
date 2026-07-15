@@ -4,11 +4,35 @@ import Svg, { Polyline, Line, Circle } from 'react-native-svg';
 import { colors, fonts, radius, shadow } from '../theme';
 import { Icon } from '../Icon';
 import { Wordmark } from '../ui';
+import { SkillRadar, RadarAxis } from '../Charts';
 import {
   SessionRecord, FEEL_LABEL, relativeDay, recentSessions, sessionsThisWeek,
   totalSessions, totalMinutes, skillTrends, hasScores, SkillTrend,
 } from '../progress';
 import { PlanSession } from '../plan';
+
+// Normalise a raw drill score into a 0..1 strength for the radar. Hitting the
+// target reads as ~0.8 of the web, with headroom above for beating it.
+function strength(value: number, target: number, better: 'higher' | 'lower'): number {
+  const t = target || 1;
+  const s = better === 'lower' ? (t / Math.max(value, 0.5)) * 0.8 : (value / t) * 0.8;
+  return Math.max(0.08, Math.min(1, s));
+}
+
+// Short axis labels so they don't clip at the edges of the radar.
+const SKILL_SHORT: Record<string, string> = {
+  'Iron play': 'Irons', Chipping: 'Chip', Putting: 'Putt', Driving: 'Drive',
+  'Bunker play': 'Bunker', 'Setup & Tempo': 'Setup', Pitching: 'Pitch', 'Shot shaping': 'Shape',
+};
+
+// Build radar axes (now = latest, then = first attempt) from the skill trends.
+function radarAxes(trends: SkillTrend[]): RadarAxis[] {
+  return trends.map((t) => ({
+    label: SKILL_SHORT[t.category] ?? t.category,
+    now: strength(t.latest, t.target, t.better),
+    then: strength(t.points[0].value, t.target, t.better),
+  }));
+}
 
 const KIND_ICON: Record<PlanSession['kind'], string> = { balanced: 'target', quick: 'zap', body: 'dumbbell' };
 const KIND_LABEL: Record<PlanSession['kind'], string> = { balanced: 'Balanced', quick: 'Quick', body: 'Golf body' };
@@ -20,6 +44,9 @@ export default function Progress({ streak, sessions }: { streak: number; session
   const minutes = totalMinutes(sessions);
   const recent = recentSessions(sessions, 8);
   const trends = skillTrends(sessions);
+  const axes = radarAxes(trends);
+  const showRadar = axes.length >= 3;
+  const anyImproved = trends.some((t) => t.delta !== null && (t.better === 'lower' ? t.delta < 0 : t.delta > 0));
   const hasData = total > 0;
 
   return (
@@ -65,6 +92,23 @@ export default function Progress({ streak, sessions }: { streak: number; session
             <StatCard label="Sessions all-time" value={String(total)} unit={total === 1 ? 'done' : 'done'} />
             <StatCard label="Minutes trained" value={String(minutes)} unit="min" />
           </View>
+
+          {/* game-by-area radar — the "spider web", driven by real scores */}
+          {showRadar && (
+            <View style={[{ marginHorizontal: 20, marginTop: 22, paddingTop: 18, paddingHorizontal: 16, paddingBottom: 14, borderRadius: 24, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border }, shadow.card]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 6, paddingBottom: 4 }}>
+                <Text style={{ fontFamily: fonts.displaySemi, fontSize: 16, color: colors.ink }}>Your game, by area</Text>
+                <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.ink45 }}>{axes.length} skills</Text>
+              </View>
+              <View style={{ alignItems: 'center' }}>
+                <SkillRadar axes={axes} size={300} />
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20, paddingTop: 6 }}>
+                <Legend swatch={<View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: colors.ink }} />} label="Now" />
+                <Legend swatch={<View style={{ width: 12, height: 3, borderRadius: 2, backgroundColor: 'rgba(20,20,20,0.35)' }} />} label="First attempt" />
+              </View>
+            </View>
+          )}
 
           {/* skill scores — real per-drill trends from logged results */}
           {hasScores(sessions) && (
@@ -180,6 +224,15 @@ function SkillCard({ t }: { t: SkillTrend }) {
           </View>
         )}
       </View>
+    </View>
+  );
+}
+
+function Legend({ swatch, label }: { swatch: React.ReactNode; label: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+      {swatch}
+      <Text style={{ fontFamily: fonts.body, fontSize: 13, color: 'rgba(20,20,20,0.6)' }}>{label}</Text>
     </View>
   );
 }

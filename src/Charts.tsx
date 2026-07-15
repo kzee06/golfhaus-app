@@ -53,6 +53,61 @@ export function Radar() {
   );
 }
 
+// Data-driven skill radar ("spider web"): one axis per scored skill, showing
+// where the golfer is now (filled ink polygon) over where they started (dashed).
+// `now`/`then` are normalised strengths in 0..1. Renders for any axis count ≥3.
+export type RadarAxis = { label: string; now: number; then: number };
+
+export function SkillRadar({ axes, size = 300 }: { axes: RadarAxis[]; size?: number }) {
+  const n = axes.length;
+  const cx = size / 2;
+  const cy = size / 2 - 4;
+  const R = size * 0.3;
+  const pt = (i: number, r: number): [number, number] => {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+    return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+  };
+  const ring = (f: number, key: string) => (
+    <Polygon key={key} points={axes.map((_, i) => pt(i, R * f).join(',')).join(' ')} fill="none" stroke="rgba(20,20,20,0.09)" strokeWidth={1} />
+  );
+  const clamp = (v: number) => Math.max(0.08, Math.min(1, v));
+  const nowPts = axes.map((s, i) => pt(i, R * clamp(s.now)).join(',')).join(' ');
+  const thenPts = axes.map((s, i) => pt(i, R * clamp(s.then)).join(',')).join(' ');
+
+  return (
+    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {[0.25, 0.5, 0.75, 1].map((f, gi) => ring(f, 'g' + gi))}
+      {axes.map((_, i) => {
+        const [x, y] = pt(i, R);
+        return <Line key={'a' + i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(20,20,20,0.07)" strokeWidth={1} />;
+      })}
+      <Polygon points={thenPts} fill="none" stroke="rgba(20,20,20,0.3)" strokeWidth={1.5} strokeDasharray="4 3" />
+      <Polygon points={nowPts} fill="rgba(20,20,20,0.18)" stroke="#141414" strokeWidth={2} />
+      {axes.map((s, i) => {
+        const [x, y] = pt(i, R * clamp(s.now));
+        return <Circle key={'d' + i} cx={x} cy={y} r={3.5} fill="#141414" />;
+      })}
+      {axes.map((s, i) => {
+        const [x, y] = pt(i, R + 16);
+        return (
+          <SvgText
+            key={'l' + i}
+            x={x}
+            y={y + 3}
+            fill="rgba(20,20,20,0.62)"
+            fontSize={10}
+            fontWeight="600"
+            fontFamily={fonts.displaySemi}
+            textAnchor={Math.abs(x - cx) < 8 ? 'middle' : x > cx ? 'start' : 'end'}
+          >
+            {s.label}
+          </SvgText>
+        );
+      })}
+    </Svg>
+  );
+}
+
 // Handicap trend area-line sparkline.
 export function TrendChart({ width }: { width: number }) {
   const w = 318, h = 76, pad = 4;
