@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { colors, radius, shadow } from './theme';
-import { Icon, NavDrills, NavProgress, Sparkle } from './Icon';
+import { Icon, NavDrills, NavProgress, CoachMark } from './Icon';
 
 export type Tab = 'today' | 'drills' | 'coach' | 'progress' | 'you';
 
@@ -37,7 +37,7 @@ export default function TabBar({ tab, onChange }: { tab: Tab; onChange: (t: Tab)
           coachActive ? shadow.button : shadow.cardSoft,
         ]}
       >
-        <Sparkle size={22} color={coachActive ? colors.white : colors.ink} />
+        <CoachMark size={30} color={coachActive ? colors.white : colors.ink} />
       </Pressable>
 
       {sideTab('progress')}

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { colors, fonts, radius, shadow } from '../theme';
-import { Sparkle } from '../Icon';
+import { CoachMark } from '../Icon';
 import { Wordmark } from '../ui';
 import { ChatMessage, coachReply, coachIsLive, COACH_GREETING, COACH_SUGGESTIONS } from '../coach';
 import { Profile } from '../profile';
@@ -28,7 +28,7 @@ function SendGlyph({ color }: { color: string }) {
 function CoachAvatar() {
   return (
     <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}>
-      <Sparkle size={16} color={colors.white} />
+      <CoachMark size={20} color={colors.white} />
     </View>
   );
 }
