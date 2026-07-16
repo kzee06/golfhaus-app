@@ -4,7 +4,7 @@ import { colors, fonts, radius, shadow } from '../theme';
 import { Icon, ChevronRight, CoachMark } from '../Icon';
 import { Wordmark, PrimaryButton, CoachLabel } from '../ui';
 import { Profile } from '../profile';
-import { Activity, ACTIVITY_GLYPH, ACTIVITY_TYPE_LABEL } from '../content';
+import { Activity, glyphForActivity, ACTIVITY_TYPE_LABEL } from '../content';
 import { PlanSession, todaysSession, shorterSession, bodySession, locationLabel } from '../plan';
 import { dayKey, SessionRecord } from '../progress';
 
@@ -174,7 +174,7 @@ export default function Today({
 function ActivityGlyph({ activity, size }: { activity: Activity; size: number }) {
   return (
     <View style={{ width: size, height: size, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}>
-      <Icon name={ACTIVITY_GLYPH[activity.type]} size={size * 0.42} color={colors.white} sw={1.8} />
+      <Icon name={glyphForActivity(activity)} size={size * 0.42} color={colors.white} sw={1.8} />
     </View>
   );
 }
