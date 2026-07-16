@@ -109,6 +109,20 @@ export function Sparkle({ size = 14, color = colors.white }: { size?: number; co
   );
 }
 
+// Golf ball on a tee — the AI coach mark. Ring drawn as a thick stroke so the
+// "hole" stays transparent and inverts with its background like the other icons.
+export function CoachMark({ size = 22, color = colors.ink }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+      <Circle cx={50} cy={36} r={26} stroke={color} strokeWidth={14} />
+      <Path
+        d="M34 70 L66 70 C65 79 58 83 54.5 85 L53.5 92 C53.5 95.5 46.5 95.5 46.5 92 L45.5 85 C42 83 35 79 34 70 Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
 // Nav glyphs
 export function NavDrills({ color = colors.ink40 }: { color?: string }) {
   return (

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { colors, fonts, radius, shadow } from '../theme';
-import { Icon, ChevronRight, Sparkle } from '../Icon';
+import { Icon, ChevronRight, CoachMark } from '../Icon';
 import { Wordmark, PrimaryButton, CoachLabel } from '../ui';
 import { Profile } from '../profile';
 import { Activity, ACTIVITY_GLYPH, ACTIVITY_TYPE_LABEL } from '../content';
@@ -86,7 +86,7 @@ export default function Today({
       {/* ask-the-coach prompt */}
       <Pressable onPress={onCoach} style={[{ marginHorizontal: 20, marginTop: 18, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.cardLg, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }, shadow.card]}>
         <View style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}>
-          <Sparkle size={20} color={colors.ink} />
+          <CoachMark size={24} color={colors.ink} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={{ fontFamily: fonts.display, fontSize: 16.5, color: colors.ink, letterSpacing: -0.2 }}>Ask your coach</Text>
