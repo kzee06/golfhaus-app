@@ -1,15 +1,20 @@
 {
   "expo": {
-    "name": "golfhaus-app",
+    "name": "GolfHaus",
     "slug": "golfhaus-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.golfhaus.app"
     },
     "android": {
+      "package": "com.golfhaus.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -22,7 +27,8 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-updates"
     ]
   }
 }

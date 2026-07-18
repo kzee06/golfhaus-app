@@ -34,6 +34,15 @@ const ICONS: Record<string, Part[]> = {
   sun: [['circle', { cx: 12, cy: 12, r: 4 }], ['path', { d: 'M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4' }]],
   heart: [['path', { d: 'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z' }]],
   wind: [['path', { d: 'M9.6 4.6A2 2 0 1 1 11 8H2' }], ['path', { d: 'M12.6 19.4A2 2 0 1 0 14 16H2' }], ['path', { d: 'M17.7 7.7A2.5 2.5 0 1 1 19.5 12H2' }]],
+  // movement glyphs for golf-body activities (relate the tile to the exercise)
+  rotate: [['polyline', { points: '21 5 21 10 16 10' }], ['path', { d: 'M20.5 15a8.5 8.5 0 1 1-2-9L21 10' }]], // hips / shoulders rotation
+  twist: [['path', { d: 'M5 9a7 7 0 0 1 12-3' }], ['polyline', { points: '17 3 17 7 13 7' }], ['path', { d: 'M19 15a7 7 0 0 1-12 3' }], ['polyline', { points: '7 21 7 17 11 17' }]], // thoracic twist
+  coreBrace: [['rect', { x: 6, y: 4, width: 12, height: 16, rx: 4 }], ['line', { x1: 9, y1: 9, x2: 15, y2: 15 }], ['line', { x1: 15, y1: 9, x2: 9, y2: 15 }]], // core / anti-rotation
+  bridge: [['path', { d: 'M4 17a8 7 0 0 1 16 0' }], ['line', { x1: 4, y1: 17, x2: 4, y2: 20 }], ['line', { x1: 20, y1: 17, x2: 20, y2: 20 }]], // glute bridge
+  legStep: [['path', { d: 'M10 3v8l-3 5' }], ['path', { d: 'M7 16h5' }], ['circle', { cx: 10, cy: 3, r: 0.5 }]], // legs / ankles
+  medball: [['circle', { cx: 12, cy: 14, r: 5 }], ['path', { d: 'M12 3v3' }], ['path', { d: 'M5 6l2.2 1.8' }], ['path', { d: 'M19 6l-2.2 1.8' }]], // rotational power throw
+  balance: [['line', { x1: 4, y1: 17, x2: 20, y2: 17 }], ['path', { d: 'M12 17 L8.5 22 L15.5 22 Z' }], ['circle', { cx: 12, cy: 12, r: 2.4 }], ['line', { x1: 12, y1: 14.4, x2: 12, y2: 17 }]], // balance / stability
+  lotus: [['circle', { cx: 12, cy: 6, r: 2.4 }], ['path', { d: 'M12 9c-4.2 0-6.5 3.2-6.5 6.5h13C18.5 12.2 16.2 9 12 9z' }], ['path', { d: 'M5.5 15.5 3 18' }], ['path', { d: 'M18.5 15.5 21 18' }]], // yoga
   // chevrons / play / check / pause used as raw components below
 };
 
