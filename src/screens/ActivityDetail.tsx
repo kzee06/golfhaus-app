@@ -4,7 +4,7 @@ import { colors, fonts, radius, shadow } from '../theme';
 import { Icon, ChevronLeft, Sparkle } from '../Icon';
 import {
   Activity,
-  ACTIVITY_GLYPH,
+  glyphForActivity,
   ACTIVITY_TYPE_LABEL,
   EQUIPMENT_LABEL,
   LOCATION_LABEL,
@@ -54,7 +54,7 @@ export default function ActivityDetail({ activity, onClose }: { activity: Activi
               <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15,15,15,0.3)' }} />
             </>
           ) : (
-            <Icon name={ACTIVITY_GLYPH[a.type]} size={92} color="rgba(255,255,255,0.9)" sw={1.4} />
+            <Icon name={glyphForActivity(a)} size={92} color="rgba(255,255,255,0.9)" sw={1.4} />
           )}
           <Pressable onPress={onClose} style={[{ position: 'absolute', top: 60, left: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' }, shadow.cardSoft]}>
             <ChevronLeft size={20} color={colors.ink} />

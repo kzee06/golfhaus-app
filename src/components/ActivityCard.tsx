@@ -2,7 +2,7 @@ import React from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 import { colors, fonts, radius, shadow } from '../theme';
 import { Icon, ChevronRight } from '../Icon';
-import { Activity, ACTIVITY_GLYPH, ACTIVITY_TYPE_LABEL, PILLAR_OF } from '../content';
+import { Activity, glyphForActivity, ACTIVITY_TYPE_LABEL, PILLAR_OF } from '../content';
 
 const pillStyle = {
   fontFamily: fonts.displaySemi,
@@ -28,7 +28,7 @@ export function difficultyLabel(a: Activity): string {
 function GlyphTile({ activity, size }: { activity: Activity; size: number }) {
   return (
     <View style={{ width: size, height: size, borderRadius: 15, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}>
-      <Icon name={ACTIVITY_GLYPH[activity.type]} size={size * 0.42} color={colors.white} sw={1.8} />
+      <Icon name={glyphForActivity(activity)} size={size * 0.42} color={colors.white} sw={1.8} />
     </View>
   );
 }
