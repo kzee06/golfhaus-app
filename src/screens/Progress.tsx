@@ -34,8 +34,8 @@ function radarAxes(trends: SkillTrend[]): RadarAxis[] {
   }));
 }
 
-const KIND_ICON: Record<PlanSession['kind'], string> = { balanced: 'target', quick: 'zap', body: 'dumbbell' };
-const KIND_LABEL: Record<PlanSession['kind'], string> = { balanced: 'Balanced', quick: 'Quick', body: 'Golf body' };
+const KIND_ICON: Record<PlanSession['kind'], string> = { balanced: 'target', quick: 'zap', body: 'dumbbell', recover: 'heart' };
+const KIND_LABEL: Record<PlanSession['kind'], string> = { balanced: 'Balanced', quick: 'Quick', body: 'Golf body', recover: 'Recovery' };
 
 export default function Progress({ streak, sessions }: { streak: number; sessions: SessionRecord[] }) {
   const now = new Date();
