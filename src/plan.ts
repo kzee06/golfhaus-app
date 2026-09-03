@@ -12,6 +12,7 @@ import {
   fitsEquipment, MovementExclusion,
 } from './content';
 import { Profile } from './profile';
+import { skillTrends } from './progress';
 import type { SessionRecord, Feel } from './progress';
 
 export type PlanSession = {
@@ -128,6 +129,22 @@ function focusSkillsFor(p: Profile): string[] {
 
 const rotate = <T>(arr: T[], n: number): T[] => (arr.length ? arr.slice(n % arr.length).concat(arr.slice(0, n % arr.length)) : arr);
 
+// Categories the golfer has proven on measured drills (latest ≥ target).
+function masteredCategories(history: SessionRecord[]): Set<string> {
+  return new Set(skillTrends(history).filter((t) => t.hitTarget).map((t) => t.category));
+}
+
+// Reorder focus skills by measured performance: skills still short of target (or
+// never measured) lead; skills the golfer has hit target on drop to the back so
+// the plan naturally graduates to the next weak area. Stable within each group.
+function scoredFocusOrder(focusSkills: string[], history: SessionRecord[]): string[] {
+  if (focusSkills.length < 2 || history.length === 0) return focusSkills;
+  const mastered = masteredCategories(history);
+  const behind = focusSkills.filter((c) => !mastered.has(c));
+  const onTarget = focusSkills.filter((c) => mastered.has(c));
+  return [...behind, ...onTarget];
+}
+
 // `focusIndex` rotates which of the golfer's focus skills leads the session —
 // used by the weekly plan to give each skill day a distinct focus.
 export function buildSession(p: Profile, kind: PlanSession['kind'], seed: number, history: SessionRecord[] = [], focusIndex = 0): PlanSession {
@@ -155,7 +172,9 @@ export function buildSession(p: Profile, kind: PlanSession['kind'], seed: number
   const tightMob = byType('mobility').filter((a) => a.bodyAreas.some((b) => p.tightAreas.includes(b)));
   add(pick(tightMob, seed, used, avoid) || pick(byType('warmup'), seed, used, avoid) || pick(byType('mobility'), seed, used, avoid));
 
-  const focusSkills = rotate(focusSkillsFor(p), focusIndex);
+  // Weakest area + goals, reordered by measured scores (unmastered first), then
+  // rotated for weekly variety.
+  const focusSkills = rotate(scoredFocusOrder(focusSkillsFor(p), history), focusIndex);
 
   if (kind === 'body') {
     // Golf-body day: mobility + strength/power + a stretch.
@@ -193,7 +212,7 @@ export function buildSession(p: Profile, kind: PlanSession['kind'], seed: number
   acts.forEach((a) => a.locations.forEach((l) => { if (!locs.length || locs.includes(l)) locCounts.set(l, (locCounts.get(l) || 0) + 1); }));
   const location = [...locCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? locs[0] ?? null;
 
-  const why = composeWhy(kind, acts, focus, p, bias, history);
+  const why = composeWhy(kind, acts, focus, p, bias, history, primarySkill);
 
   return { kind, focus, why, totalMin: total, location, activities: acts };
 }
@@ -209,8 +228,25 @@ function adaptNote(bias: number, history: SessionRecord[]): string {
   return '';
 }
 
-function composeWhy(kind: PlanSession['kind'], acts: Activity[], focus: string, p: Profile, bias: number, history: SessionRecord[]): string {
-  const note = adaptNote(bias, history);
+// A note that explains a score-driven choice: either graduating away from a
+// skill that's on target, or naming the gap on the skill we're working today.
+function scoreWhyNote(leadCategory: string | null, history: SessionRecord[]): string {
+  if (!leadCategory || history.length === 0) return '';
+  const trends = skillTrends(history);
+  const lead = trends.find((t) => t.category === leadCategory);
+  const graduated = trends.find((t) => t.hitTarget && t.category !== leadCategory);
+  if (graduated && (!lead || !lead.hitTarget)) {
+    return ` Your ${graduated.category.toLowerCase()} is on target (${graduated.latest}/${graduated.target}), so today shifts to ${leadCategory.toLowerCase()}.`;
+  }
+  if (lead && !lead.hitTarget) {
+    return ` You're at ${lead.latest}/${lead.target} on ${lead.category.toLowerCase()} — let's close that gap.`;
+  }
+  return '';
+}
+
+function composeWhy(kind: PlanSession['kind'], acts: Activity[], focus: string, p: Profile, bias: number, history: SessionRecord[], leadCategory: string | null): string {
+  // A measured-score note takes precedence over the feel-based note when there's one.
+  const note = scoreWhyNote(leadCategory, history) || adaptNote(bias, history);
   if (!acts.length) return 'A short, balanced session to keep you moving toward your goals.';
   if (kind === 'body') {
     return `A golf-body day — mobility, strength and recovery to build a swing that holds up and lasts. ${acts[0].golfBenefit}${note}`;
