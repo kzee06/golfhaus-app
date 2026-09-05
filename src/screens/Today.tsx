@@ -5,7 +5,7 @@ import { Icon, ChevronRight, CoachMark } from '../Icon';
 import { Wordmark, PrimaryButton, CoachLabel } from '../ui';
 import { Profile } from '../profile';
 import { Activity, glyphForActivity, ACTIVITY_TYPE_LABEL } from '../content';
-import { PlanSession, todaysSession, shorterSession, bodySession, locationLabel } from '../plan';
+import { PlanSession, todaysSession, shorterSession, bodySession, recoverySession, isRestDayToday, locationLabel } from '../plan';
 import { dayKey, SessionRecord } from '../progress';
 
 const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -23,11 +23,12 @@ function weekStrip(practicedKeys: string[]) {
 }
 
 type Kind = PlanSession['kind'];
-const KIND_META: { key: Kind; label: string }[] = [
+const TRAIN_META: { key: Kind; label: string }[] = [
   { key: 'balanced', label: 'Balanced' },
   { key: 'quick', label: 'Quick' },
   { key: 'body', label: 'Golf body' },
 ];
+const RECOVER_META = { key: 'recover' as Kind, label: 'Recover' };
 
 export default function Today({
   profile,
@@ -55,16 +56,21 @@ export default function Today({
   // A seed that rotates once per day, so the plan varies without repeating.
   const seed = Math.floor(Date.now() / 86_400_000);
 
+  const restToday = useMemo(() => isRestDayToday(profile, new Date()), [profile]);
+
   const sessions = useMemo(
     () => ({
       balanced: todaysSession(profile, seed, history),
       quick: shorterSession(profile, seed, history),
       body: bodySession(profile, seed, history),
+      recover: recoverySession(profile, seed, history),
     }),
     [profile, seed, history],
   );
 
-  const [kind, setKind] = useState<Kind>('balanced');
+  // On a rest day, lead with Recover (but keep the training options available).
+  const kindMeta = restToday ? [RECOVER_META, ...TRAIN_META] : TRAIN_META;
+  const [kind, setKind] = useState<Kind>(restToday ? 'recover' : 'balanced');
   const session = sessions[kind];
   const week = weekStrip(practicedDays);
   const displayName = name || 'golfer';
@@ -123,7 +129,7 @@ export default function Today({
 
       {/* option chips — switch which plan is shown */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20, paddingTop: 18 }}>
-        {KIND_META.map((k) => {
+        {kindMeta.map((k) => {
           const on = k.key === kind;
           const mins = sessions[k.key].totalMin;
           return (

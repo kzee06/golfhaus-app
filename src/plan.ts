@@ -16,7 +16,7 @@ import { skillTrends } from './progress';
 import type { SessionRecord, Feel } from './progress';
 
 export type PlanSession = {
-  kind: 'balanced' | 'quick' | 'body';
+  kind: 'balanced' | 'quick' | 'body' | 'recover';
   focus: string;
   why: string;
   totalMin: number;
@@ -164,7 +164,7 @@ export function buildSession(p: Profile, kind: PlanSession['kind'], seed: number
 
   const used = new Set<string>();
   const acts: Activity[] = [];
-  const budget = kind === 'quick' ? 12 : kind === 'body' ? 20 : 24;
+  const budget = kind === 'quick' ? 12 : kind === 'recover' ? 14 : kind === 'body' ? 20 : 24;
   let spent = 0;
   const add = (a?: Activity) => { if (a && spent + a.durationMin <= budget + 4) { acts.push(a); used.add(a.id); spent += a.durationMin; return true; } return false; };
 
@@ -176,7 +176,12 @@ export function buildSession(p: Profile, kind: PlanSession['kind'], seed: number
   // rotated for weekly variety.
   const focusSkills = rotate(scoredFocusOrder(focusSkillsFor(p), history), focusIndex);
 
-  if (kind === 'body') {
+  if (kind === 'recover') {
+    // Rest day: gentle mobility, a stretch/yoga, and recovery — no drills or load.
+    add(pick(byType('mobility'), seed + 1, used, avoid));
+    add(pick([...byType('stretch'), ...byType('yoga')], seed, used, avoid));
+    add(pick([...byType('recovery'), ...byType('stretch')], seed + 1, used, avoid));
+  } else if (kind === 'body') {
     // Golf-body day: mobility + strength/power + a stretch.
     add(pick(byType('mobility'), seed + 1, used, avoid));
     const strengthPool = [...byType('strength'), ...(powerAllowed(p, bias) ? byType('power') : [])].filter(levelOk);
@@ -205,7 +210,10 @@ export function buildSession(p: Profile, kind: PlanSession['kind'], seed: number
 
   const total = acts.reduce((s, a) => s + a.durationMin, 0);
   const primarySkill = focusSkills[0] && FOCUS_LABEL[focusSkills[0]] ? focusSkills[0] : null;
-  const focus = kind === 'body' ? 'Your golf body' : primarySkill ? FOCUS_LABEL[primarySkill] : 'Sharpen your game';
+  const focus =
+    kind === 'recover' ? 'Rest & recover'
+    : kind === 'body' ? 'Your golf body'
+    : primarySkill ? FOCUS_LABEL[primarySkill] : 'Sharpen your game';
 
   // Where: the most-relevant location the golfer can use.
   const locCounts = new Map<LocationKey, number>();
@@ -248,6 +256,9 @@ function composeWhy(kind: PlanSession['kind'], acts: Activity[], focus: string, 
   // A measured-score note takes precedence over the feel-based note when there's one.
   const note = scoreWhyNote(leadCategory, history) || adaptNote(bias, history);
   if (!acts.length) return 'A short, balanced session to keep you moving toward your goals.';
+  if (kind === 'recover') {
+    return "Today's a rest day in your plan — gentle mobility and recovery keeps you loose and lets your body adapt to the work you've put in. Training's optional; if you're feeling good, tap a fuller session below.";
+  }
   if (kind === 'body') {
     return `A golf-body day — mobility, strength and recovery to build a swing that holds up and lasts. ${acts[0].golfBenefit}${note}`;
   }
@@ -268,6 +279,9 @@ export function shorterSession(p: Profile, seed: number, history: SessionRecord[
 }
 export function bodySession(p: Profile, seed: number, history: SessionRecord[] = []): PlanSession {
   return buildSession(p, 'body', seed, history);
+}
+export function recoverySession(p: Profile, seed: number, history: SessionRecord[] = []): PlanSession {
+  return buildSession(p, 'recover', seed, history);
 }
 
 export const locationLabel = (l: LocationKey | null): string => (l ? LOCATION_LABEL[l] : 'Anywhere');
@@ -369,3 +383,9 @@ export function weeklyPlan(p: Profile, history: SessionRecord[], today: Date): W
 export const KIND_LABEL: Record<DayKind, string> = {
   balanced: 'Skill + body', quick: 'Quick session', body: 'Golf body', rest: 'Rest day',
 };
+
+// Is today a rest day in the golfer's weekly plan? (Template-driven, so history
+// doesn't affect the answer.)
+export function isRestDayToday(p: Profile, today: Date): boolean {
+  return weeklyPlan(p, [], today).find((d) => d.isToday)?.kind === 'rest';
+}
