@@ -16,7 +16,6 @@ import {
 } from '@expo-google-fonts/manrope';
 
 import { colors } from './src/theme';
-import { allDrills, drills } from './src/data';
 import { Profile, EMPTY_PROFILE, isOnboarded, STEPS } from './src/profile';
 import { loadProfile, saveProfile, clearProfile, loadProgress, saveProgress, clearProgress } from './src/store';
 import {
@@ -31,17 +30,13 @@ import You from './src/screens/You';
 import Coach from './src/screens/Coach';
 import Library from './src/screens/Library';
 import ActivityDetail from './src/screens/ActivityDetail';
-import DrillDetail from './src/screens/DrillDetail';
-import Session from './src/screens/Session';
-import Done from './src/screens/Done';
 import SessionPlayer, { SessionSummary } from './src/screens/SessionPlayer';
 import WeeklyPlan from './src/screens/WeeklyPlan';
 import { activityById } from './src/content';
 import { PlanSession, todaysSession } from './src/plan';
 
 type Phase = 'onboarding' | 'app';
-type Overlay = null | 'drill' | 'activity' | 'session' | 'player' | 'week';
-type Mode = 'timing' | 'logging' | 'done';
+type Overlay = null | 'activity' | 'player' | 'week';
 
 const N = STEPS.length; // number of onboarding question steps
 
@@ -64,20 +59,12 @@ export default function App() {
   const [step, setStep] = useState(0);
   const [tab, setTab] = useState<Tab>('today');
   const [overlay, setOverlay] = useState<Overlay>(null);
-  const [activeId, setActiveId] = useState('ladder');
   const [activeActivityId, setActiveActivityId] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<PlanSession | null>(null);
-  const [running, setRunning] = useState(true);
-  const [elapsed, setElapsed] = useState(0);
-  const [mode, setMode] = useState<Mode>('timing');
-  const [logMade, setLogMade] = useState<number | null>(null);
-  const [logFeel, setLogFeel] = useState<string | null>(null);
   const [progress, setProgress] = useState<ProgressState>(EMPTY_PROGRESS);
 
   // Streak and weekly practice derive from the real session log.
   const streak = computeStreak(progress.sessions, new Date());
-
-  const activeDrill = allDrills().find((d) => d.id === activeId) || drills[0];
 
   // ---- hydrate persisted profile + progress on launch ----
   useEffect(() => {
@@ -98,16 +85,6 @@ export default function App() {
   useEffect(() => {
     if (hydrated) saveProgress(progress);
   }, [progress, hydrated]);
-
-  // ---- timer ----
-  useEffect(() => {
-    if (overlay === 'session' && mode === 'timing' && running) {
-      const id = setInterval(() => {
-        setElapsed((e) => Math.min(e + 1, activeDrill.durationSec));
-      }, 1000);
-      return () => clearInterval(id);
-    }
-  }, [overlay, mode, running, activeDrill.durationSec]);
 
   const buildTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (buildTimeout.current) clearTimeout(buildTimeout.current); }, []);
@@ -166,11 +143,6 @@ export default function App() {
     if (s.activities.length) { setActiveSession(s); setOverlay('player'); }
   };
 
-  const openDrill = (id: string) => { setActiveId(id); setOverlay('drill'); };
-  const startSession = () => { setOverlay('session'); setMode('timing'); setElapsed(0); setRunning(true); setLogMade(null); setLogFeel(null); };
-  const submitLog = () => { if (logMade === null || !logFeel) return; setMode('done'); };
-  const backHome = () => { setOverlay(null); setTab('today'); };
-
   const greetH = new Date().getHours();
   const greeting = greetH < 12 ? 'Good morning' : greetH < 18 ? 'Good afternoon' : 'Good evening';
 
@@ -222,31 +194,10 @@ export default function App() {
             {!overlay && tab === 'progress' && <Progress streak={streak} sessions={progress.sessions} />}
             {!overlay && tab === 'you' && <You profile={profile} onRestart={restart} />}
 
-            {overlay === 'drill' && <DrillDetail drill={activeDrill} onClose={() => setOverlay(null)} onStart={startSession} />}
-
             {overlay === 'activity' && activeActivityId && (() => {
               const a = activityById(activeActivityId);
               return a ? <ActivityDetail activity={a} onClose={() => setOverlay(null)} /> : null;
             })()}
-
-            {overlay === 'session' && mode !== 'done' && (
-              <Session
-                drill={activeDrill}
-                mode={mode === 'logging' ? 'logging' : 'timing'}
-                running={running}
-                elapsed={elapsed}
-                logMade={logMade}
-                logFeel={logFeel}
-                onClose={() => setOverlay(null)}
-                onToggleRun={() => setRunning((r) => !r)}
-                onOpenLog={() => { setMode('logging'); setRunning(false); }}
-                onPickMade={setLogMade}
-                onPickFeel={setLogFeel}
-                onSubmit={submitLog}
-              />
-            )}
-
-            {overlay === 'session' && mode === 'done' && <Done streak={streak} logMade={logMade} onBack={backHome} />}
 
             {overlay === 'player' && activeSession && (
               <SessionPlayer
