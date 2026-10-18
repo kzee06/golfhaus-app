@@ -5,13 +5,16 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.golfhaus.app"
+      "bundleIdentifier": "com.golfhaus.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "GolfHaus uses your location to show GPS distances to the green and find courses near you."
+      }
     },
     "android": {
       "package": "com.golfhaus.app",
@@ -24,11 +27,21 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single"
     },
     "plugins": [
+      "expo-router",
       "expo-font",
-      "expo-updates"
-    ]
+      "expo-updates",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "GolfHaus uses your location to show GPS distances to the green and find courses near you."
+        }
+      ]
+    ],
+    "scheme": "golfhaus"
   }
 }

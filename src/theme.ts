@@ -1,57 +1,97 @@
-// GolfHaus design tokens — monochrome only (black / white / light grey).
-// Emphasis comes from weight, size and contrast, never hue.
+// GolfHaus design tokens — monochrome, with light and dark palettes that share
+// the same semantic keys so screens never branch on the colour scheme.
+// Emphasis comes from weight, size and contrast, never hue. Gameplay text
+// targets ≥ 7:1 contrast for readability in sunlight.
 
-export const colors = {
-  ink: '#141414', // text, primary buttons, active states, selected fills
-  white: '#ffffff', // cards, sheets, on-dark text
-  canvas: '#f3f3f3', // app background / screen base
-  surface: '#f1f1f1', // secondary fills (feature tiles, chips, coach card)
-  onDark: '#ffffff',
+import { useColorScheme } from 'react-native';
 
-  ink55: 'rgba(20,20,20,0.55)', // secondary / body text
-  ink50: 'rgba(20,20,20,0.5)', // tertiary text, meta
-  ink45: 'rgba(20,20,20,0.45)', // quiet labels
-  ink40: 'rgba(20,20,20,0.4)', // faintest text, counts
-  ink30: 'rgba(20,20,20,0.3)', // chevrons, disabled glyphs
-
-  border: 'rgba(20,20,20,0.07)', // card hairline border
-  border08: 'rgba(20,20,20,0.08)',
-  border12: 'rgba(20,20,20,0.12)',
-  border18: 'rgba(20,20,20,0.18)', // coach card border
-
-  fill05: 'rgba(20,20,20,0.05)',
-  fill06: 'rgba(20,20,20,0.06)',
-  fill10: 'rgba(20,20,20,0.1)',
-
-  disabledBg: 'rgba(20,20,20,0.07)',
-  disabledText: 'rgba(20,20,20,0.32)',
+export type Palette = {
+  // surfaces
+  canvas: string; // screen background
+  card: string; // cards, sheets
+  surface: string; // secondary fills (tiles, chips)
+  // primary (the "ink": text, primary buttons, selected fills) and its on-colour
+  ink: string;
+  onInk: string;
+  white: string; // legacy alias for card/on-dark text
+  // text
+  text: string;
+  text2: string;
+  text3: string;
+  text4: string;
+  // legacy aliases kept for the shared Icon set
+  ink55: string; ink50: string; ink45: string; ink40: string; ink30: string;
+  // hairlines & fills
+  border: string; border08: string; border12: string; border18: string;
+  fill05: string; fill06: string; fill10: string;
+  disabledBg: string; disabledText: string;
+  // sunlight-safe high-contrast pair for gameplay numerals
+  gameplayBg: string;
+  gameplayFg: string;
 };
+
+export const light: Palette = {
+  canvas: '#f3f3f3',
+  card: '#ffffff',
+  surface: '#f1f1f1',
+  ink: '#141414',
+  onInk: '#ffffff',
+  white: '#ffffff',
+  text: '#141414',
+  text2: 'rgba(20,20,20,0.62)',
+  text3: 'rgba(20,20,20,0.5)',
+  text4: 'rgba(20,20,20,0.4)',
+  ink55: 'rgba(20,20,20,0.55)', ink50: 'rgba(20,20,20,0.5)', ink45: 'rgba(20,20,20,0.45)', ink40: 'rgba(20,20,20,0.4)', ink30: 'rgba(20,20,20,0.3)',
+  border: 'rgba(20,20,20,0.07)', border08: 'rgba(20,20,20,0.08)', border12: 'rgba(20,20,20,0.12)', border18: 'rgba(20,20,20,0.18)',
+  fill05: 'rgba(20,20,20,0.05)', fill06: 'rgba(20,20,20,0.06)', fill10: 'rgba(20,20,20,0.1)',
+  disabledBg: 'rgba(20,20,20,0.07)', disabledText: 'rgba(20,20,20,0.32)',
+  gameplayBg: '#141414',
+  gameplayFg: '#ffffff',
+};
+
+export const dark: Palette = {
+  canvas: '#0d0d0d',
+  card: '#181818',
+  surface: '#1f1f1f',
+  ink: '#f5f5f5',
+  onInk: '#141414',
+  white: '#181818',
+  text: '#f5f5f5',
+  text2: 'rgba(245,245,245,0.66)',
+  text3: 'rgba(245,245,245,0.54)',
+  text4: 'rgba(245,245,245,0.42)',
+  ink55: 'rgba(245,245,245,0.6)', ink50: 'rgba(245,245,245,0.54)', ink45: 'rgba(245,245,245,0.48)', ink40: 'rgba(245,245,245,0.42)', ink30: 'rgba(245,245,245,0.32)',
+  border: 'rgba(245,245,245,0.08)', border08: 'rgba(245,245,245,0.09)', border12: 'rgba(245,245,245,0.14)', border18: 'rgba(245,245,245,0.2)',
+  fill05: 'rgba(245,245,245,0.06)', fill06: 'rgba(245,245,245,0.08)', fill10: 'rgba(245,245,245,0.12)',
+  disabledBg: 'rgba(245,245,245,0.08)', disabledText: 'rgba(245,245,245,0.35)',
+  gameplayBg: '#f5f5f5',
+  gameplayFg: '#141414',
+};
+
+// Static default (light) for modules that can't use hooks (e.g. icon defaults).
+export const colors = light;
+
+export function useTheme(): Palette {
+  const scheme = useColorScheme();
+  return scheme === 'dark' ? dark : light;
+}
+
+export const useIsDark = (): boolean => useColorScheme() === 'dark';
 
 // Font families — loaded via @expo-google-fonts. Keys match the loaded names.
 export const fonts = {
-  // Schibsted Grotesk — display / headings / buttons / numerals
   display: 'SchibstedGrotesk_700Bold',
   displayExtra: 'SchibstedGrotesk_800ExtraBold',
   displaySemi: 'SchibstedGrotesk_600SemiBold',
   displayMed: 'SchibstedGrotesk_500Medium',
-  // Manrope — body / labels / meta
   body: 'Manrope_400Regular',
   bodyMed: 'Manrope_500Medium',
   bodySemi: 'Manrope_600SemiBold',
   bodyBold: 'Manrope_700Bold',
 };
 
-export const radius = {
-  chip: 8,
-  card: 20,
-  cardLg: 22,
-  sheet: 30,
-  pill: 30,
-  nav: 33,
-};
+export const radius = { chip: 8, card: 20, cardLg: 22, sheet: 30, pill: 30, nav: 33 };
 
-// Soft, low-opacity shadows via the modern `boxShadow` style (web + native).
-// Values mirror the design's CSS shadows, including negative spread.
 export const shadow = {
   card: { boxShadow: '0px 8px 26px -16px rgba(20,20,20,0.22)' },
   cardSoft: { boxShadow: '0px 4px 16px -10px rgba(20,20,20,0.18)' },
@@ -59,5 +99,6 @@ export const shadow = {
   nav: { boxShadow: '0px 16px 38px -12px rgba(20,20,20,0.28)' },
 };
 
-// Logical screen is 402 wide in the prototype; screen H padding 20–26.
 export const SCREEN_PAD = 24;
+// Minimum tap target for outdoor use (points).
+export const TAP = 56;
