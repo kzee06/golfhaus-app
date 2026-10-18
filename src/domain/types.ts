@@ -5,6 +5,9 @@ export type LatLng = { lat: number; lng: number };
 
 export type Units = 'm' | 'yd';
 
+// Appearance preference; 'system' follows the device setting.
+export type ThemeMode = 'system' | 'light' | 'dark';
+
 // ─── Courses ─────────────────────────────────────────────────────────────────
 
 export type CourseSource = 'osm' | 'manual' | 'provider';
@@ -130,6 +133,7 @@ export type Golfer = {
   name: string;
   handle?: string;
   units: Units;
+  themeMode: ThemeMode;
   homeCourseId?: string;
   clubs: ClubDistance[];
   createdAt: string;
@@ -139,6 +143,7 @@ export const EMPTY_GOLFER: Golfer = {
   id: 'me',
   name: '',
   units: 'm',
+  themeMode: 'system',
   clubs: [],
   createdAt: '',
 };

@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Screen, Pad, Button, Chip, Stepper, Muted } from '../../../src/ui';
+import { Screen, Pad, Button, Chip, Stepper, Muted, GradientCard } from '../../../src/ui';
 import { useApp } from '../../../src/data/AppState';
 import { Fairway, HoleScore, Round, holesInRound } from '../../../src/domain/types';
 import { fmtToPar, leaderboard, nextUnscoredHole, parForHole, stamp, totals } from '../../../src/scoring';
@@ -103,29 +103,29 @@ export default function ActiveRound() {
 
       {/* GPS card */}
       <Pad style={{ marginTop: 16 }}>
-        <View style={[{ backgroundColor: t.gameplayBg, borderRadius: radius.cardLg, padding: 18 }, shadow.card]}>
+        <GradientCard style={{ padding: 18 }}>
           {dist ? (
             <>
               <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                <Dist label="Front" v={fmtDistance(dist.front, golfer.units)} fg={t.gameplayFg} />
-                <Dist label="Middle" v={fmtDistance(dist.middle, golfer.units)} fg={t.gameplayFg} big />
-                <Dist label="Back" v={fmtDistance(dist.back, golfer.units)} fg={t.gameplayFg} />
+                <Dist label="Front" v={fmtDistance(dist.front, golfer.units)} fg={t.heroFg} />
+                <Dist label="Middle" v={fmtDistance(dist.middle, golfer.units)} fg={t.heroFg} big />
+                <Dist label="Back" v={fmtDistance(dist.back, golfer.units)} fg={t.heroFg} />
               </View>
-              <Text style={{ fontFamily: fonts.body, fontSize: 12.5, color: t.gameplayFg, opacity: 0.6, marginTop: 10, textAlign: 'center' }}>
+              <Text style={{ fontFamily: fonts.body, fontSize: 12.5, color: t.heroMuted, marginTop: 10, textAlign: 'center' }}>
                 {unitLabel(golfer.units)} to the green · GPS ±{accuracyM ? Math.round(accuracyM) : '–'} m · pin position not known
               </Text>
             </>
           ) : (
             <View style={{ alignItems: 'center', paddingVertical: 6 }}>
-              <Text style={{ fontFamily: fonts.displaySemi, fontSize: 15, color: t.gameplayFg }}>
+              <Text style={{ fontFamily: fonts.displaySemi, fontSize: 15, color: t.heroFg }}>
                 {status === 'denied' ? 'Location access is off' : status === 'requesting' ? 'Finding your position…' : !geom?.green ? 'No GPS data for this hole yet' : 'Waiting for GPS…'}
               </Text>
-              <Text style={{ fontFamily: fonts.body, fontSize: 13, color: t.gameplayFg, opacity: 0.6, marginTop: 4, textAlign: 'center' }}>
+              <Text style={{ fontFamily: fonts.body, fontSize: 13, color: t.heroMuted, marginTop: 4, textAlign: 'center' }}>
                 {status === 'denied' ? 'Enable location in Settings to see distances.' : !geom?.green ? 'Distances appear where the green is mapped. Scoring works regardless.' : 'Distances to the green will appear here.'}
               </Text>
             </View>
           )}
-        </View>
+        </GradientCard>
         {gpsHole != null && gpsHole !== hole && (
           <View style={{ marginTop: 10, alignItems: 'center' }}>
             <Chip label={`GPS says you're at hole ${gpsHole}`} sub="Go there" onPress={() => go(gpsHole)} />

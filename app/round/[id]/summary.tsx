@@ -2,7 +2,7 @@
 import React from 'react';
 import { Alert, Pressable, Share, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Screen, Pad, Button, Card, Muted, SectionLabel, StatTile } from '../../../src/ui';
+import { Screen, Pad, Button, Card, Muted, SectionLabel, StatTile, GradientCard } from '../../../src/ui';
 import { useApp } from '../../../src/data/AppState';
 import { fmtToPar, isComplete, leaderboard, totals, RESULT_LABEL, HoleResult } from '../../../src/scoring';
 import { ChevronLeft } from '../../../src/Icon';
@@ -57,23 +57,23 @@ export default function Summary() {
 
       {/* hero card — the shareable moment */}
       <Pad>
-        <View style={[{ backgroundColor: t.gameplayBg, borderRadius: radius.cardLg, padding: 22 }, shadow.card]}>
-          <Text style={{ fontFamily: fonts.displaySemi, fontSize: 12, letterSpacing: 0.6, textTransform: 'uppercase', color: t.gameplayFg, opacity: 0.6 }}>{round.status === 'active' ? 'Round summary' : 'Completed round'}</Text>
-          <Text style={{ fontFamily: fonts.display, fontSize: 24, color: t.gameplayFg, letterSpacing: -0.6, marginTop: 6 }} numberOfLines={2}>{round.course.name}</Text>
-          <Text style={{ fontFamily: fonts.body, fontSize: 14, color: t.gameplayFg, opacity: 0.7, marginTop: 2 }}>{date}</Text>
+        <GradientCard style={{ padding: 22 }}>
+          <Text style={{ fontFamily: fonts.displaySemi, fontSize: 12, letterSpacing: 0.6, textTransform: 'uppercase', color: t.heroMuted }}>{round.status === 'active' ? 'Round summary' : 'Completed round'}</Text>
+          <Text style={{ fontFamily: fonts.display, fontSize: 24, color: t.heroFg, letterSpacing: -0.6, marginTop: 6 }} numberOfLines={2}>{round.course.name}</Text>
+          <Text style={{ fontFamily: fonts.body, fontSize: 14, color: t.heroMuted, marginTop: 2 }}>{date}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginTop: 18 }}>
-            <Text style={{ fontFamily: fonts.display, fontSize: 72, color: t.gameplayFg, letterSpacing: -3, lineHeight: 74 }}>{tt.strokes || '–'}</Text>
+            <Text style={{ fontFamily: fonts.display, fontSize: 72, color: t.heroFg, letterSpacing: -3, lineHeight: 74 }}>{tt.strokes || '–'}</Text>
             <View style={{ paddingBottom: 12 }}>
-              <Text style={{ fontFamily: fonts.display, fontSize: 26, color: t.gameplayFg, letterSpacing: -0.6 }}>{tt.holesPlayed ? fmtToPar(tt.toPar) : ''}</Text>
-              <Text style={{ fontFamily: fonts.body, fontSize: 13.5, color: t.gameplayFg, opacity: 0.7 }}>{tt.holesPlayed} of {round.holeCount} holes</Text>
+              <Text style={{ fontFamily: fonts.display, fontSize: 26, color: t.heroFg, letterSpacing: -0.6 }}>{tt.holesPlayed ? fmtToPar(tt.toPar) : ''}</Text>
+              <Text style={{ fontFamily: fonts.body, fontSize: 13.5, color: t.heroMuted }}>{tt.holesPlayed} of {round.holeCount} holes</Text>
             </View>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
             {HIGHLIGHTS.filter((k) => tt.counts[k] > 0).map((k) => (
-              <Text key={k} style={{ fontFamily: fonts.displaySemi, fontSize: 12.5, color: t.gameplayBg, backgroundColor: t.gameplayFg, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 9, overflow: 'hidden' }}>{tt.counts[k]} {RESULT_LABEL[k]}{tt.counts[k] > 1 && k !== 'triple+' ? 's' : ''}</Text>
+              <Text key={k} style={{ fontFamily: fonts.displaySemi, fontSize: 12.5, color: t.heroGradient[0], backgroundColor: t.heroFg, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 9, overflow: 'hidden' }}>{tt.counts[k]} {RESULT_LABEL[k]}{tt.counts[k] > 1 && k !== 'triple+' ? 's' : ''}</Text>
             ))}
           </View>
-        </View>
+        </GradientCard>
       </Pad>
 
       {round.players.length > 1 && (
