@@ -47,6 +47,13 @@ export default function Profile() {
         </Pad>
       )}
 
+      <SectionLabel>Appearance</SectionLabel>
+      <Pad style={{ flexDirection: 'row', gap: 8 }}>
+        {(['system', 'light', 'dark'] as const).map((m) => (
+          <Chip key={m} label={m === 'system' ? 'System' : m === 'light' ? 'Light' : 'Dark'} on={(golfer.themeMode ?? 'system') === m} onPress={() => setGolfer((g) => ({ ...g, themeMode: m }))} />
+        ))}
+      </Pad>
+
       <SectionLabel>Overview</SectionLabel>
       <Pad style={{ flexDirection: 'row', gap: 12 }}>
         <StatTile label="Rounds" value={String(stats.rounds)} />
