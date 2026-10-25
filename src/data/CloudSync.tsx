@@ -16,7 +16,7 @@ type SyncStatus = { state: SyncState; lastSyncedAt: string | null; error: string
 const Ctx = createContext<SyncStatus>({ state: 'off', lastSyncedAt: null, error: null, pending: 0, syncNow: () => {} });
 
 export function CloudSyncProvider({ children }: { children: React.ReactNode }) {
-  const { hydrated, rounds, pendingDeletes, markSynced, mergeRemoteRounds, clearPendingDelete } = useApp();
+  const { hydrated, rounds, pendingDeletes, syncUserId, markSynced, mergeRemoteRounds, clearPendingDelete, setSyncUserId, adoptLocalRounds } = useApp();
   const { status: authStatus, userId } = useAuth();
   const [state, setState] = useState<SyncState>('off');
   const [lastSyncedAt, setLast] = useState<string | null>(null);
@@ -27,7 +27,18 @@ export function CloudSyncProvider({ children }: { children: React.ReactNode }) {
   const latest = useRef({ rounds, pendingDeletes });
   latest.current = { rounds, pendingDeletes };
 
-  const enabled = hydrated && authStatus === 'signedIn' && !!userId;
+  // Account switch: if this device last synced as someone else, local rounds
+  // re-upload under the current account and its rounds are pulled fresh.
+  // A null record (first launch with this build) means "same user".
+  const switching = hydrated && authStatus === 'signedIn' && !!userId && syncUserId !== userId;
+  useEffect(() => {
+    if (!switching) return;
+    if (syncUserId) adoptLocalRounds();
+    setSyncUserId(userId);
+    pulled.current = false;
+  }, [switching, syncUserId, userId, adoptLocalRounds, setSyncUserId]);
+
+  const enabled = hydrated && authStatus === 'signedIn' && !!userId && !switching;
   const pending = rounds.filter(needsSync).length + pendingDeletes.length;
 
   const run = useCallback(async () => {
