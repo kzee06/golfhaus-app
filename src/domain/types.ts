@@ -94,6 +94,7 @@ export type RoundPlayer = {
   isMe: boolean;
   userId?: string | null; // null = guest
   scores: Record<number, HoleScore>; // keyed by hole number
+  remoteId?: string; // round_players.id once synced
 };
 
 export type RoundStatus = 'active' | 'complete';
@@ -122,6 +123,11 @@ export type Round = {
   players: RoundPlayer[];
   scorekeeperId?: string;
   updatedAt: string;
+  // Cloud sync bookkeeping (Phase 2). remoteId is the rounds.id UUID; syncedAt
+  // is the updatedAt value last confirmed on the server — a round needs a push
+  // whenever updatedAt > syncedAt.
+  remoteId?: string;
+  syncedAt?: string;
 };
 
 // ─── Golfer ──────────────────────────────────────────────────────────────────
@@ -156,3 +162,18 @@ export function holesInRound(r: Pick<Round, 'holeCount' | 'startHole'>): number[
 }
 
 export const newId = (): string => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+// RFC 4122 v4 UUID for server-side ids. Uses crypto.getRandomValues when the
+// runtime has it, otherwise Math.random (fine for ids, not for secrets).
+export function uuid(): string {
+  const b = new Uint8Array(16);
+  const c: any = (globalThis as any).crypto;
+  if (c && typeof c.getRandomValues === 'function') c.getRandomValues(b);
+  else for (let i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
+export const needsSync = (r: Round): boolean => !r.syncedAt || r.updatedAt > r.syncedAt;

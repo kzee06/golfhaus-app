@@ -12,6 +12,8 @@ import {
 } from '@expo-google-fonts/schibsted-grotesk';
 import { Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold } from '@expo-google-fonts/manrope';
 import { AppStateProvider, useApp } from '../src/data/AppState';
+import { AuthProvider } from '../src/data/auth';
+import { CloudSyncProvider } from '../src/data/CloudSync';
 import { ThemeProvider, useIsDark, useTheme } from '../src/theme';
 
 // Applies the golfer's appearance preference (System / Light / Dark) app-wide.
@@ -48,11 +50,15 @@ export default function RootLayout() {
   if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#f3f3f3' }} />;
   return (
     <SafeAreaProvider>
-      <AppStateProvider>
-        <Themed>
-          <Shell />
-        </Themed>
-      </AppStateProvider>
+      <AuthProvider>
+        <AppStateProvider>
+          <CloudSyncProvider>
+            <Themed>
+              <Shell />
+            </Themed>
+          </CloudSyncProvider>
+        </AppStateProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

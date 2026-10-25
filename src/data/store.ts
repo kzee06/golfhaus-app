@@ -11,6 +11,7 @@ const K = {
   courses: 'gh2/courses/v1', // cache: id -> Course
   favourites: 'gh2/favourites/v1', // course ids
   recents: 'gh2/recents/v1', // course ids, most recent first
+  pendingDeletes: 'gh2/pending-deletes/v1', // remote round ids to delete when online
 };
 
 async function getJSON<T>(key: string, fallback: T): Promise<T> {
@@ -38,6 +39,8 @@ export const golferRepo = {
 export const roundsRepo = {
   load: () => getJSON<Round[]>(K.rounds, []),
   save: (rounds: Round[]) => setJSON(K.rounds, rounds),
+  loadPendingDeletes: () => getJSON<string[]>(K.pendingDeletes, []),
+  savePendingDeletes: (ids: string[]) => setJSON(K.pendingDeletes, ids),
 };
 
 export const coursesRepo = {

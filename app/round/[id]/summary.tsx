@@ -1,8 +1,9 @@
 // Round summary — finish the round, review it, share it, keep it forever.
 import React from 'react';
-import { Alert, Pressable, Share, Text, View } from 'react-native';
+import { Pressable, Share, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen, Pad, Button, Card, Muted, SectionLabel, StatTile, GradientCard } from '../../../src/ui';
+import { confirmAction } from '../../../src/ui/dialog';
 import { useApp } from '../../../src/data/AppState';
 import { fmtToPar, isComplete, leaderboard, totals, RESULT_LABEL, HoleResult } from '../../../src/scoring';
 import { ChevronLeft } from '../../../src/Icon';
@@ -41,10 +42,7 @@ export default function Summary() {
     try { await Share.share({ message: lines }); } catch { /* user cancelled */ }
   };
 
-  const remove = () => Alert.alert('Delete this round?', 'This can\'t be undone.', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => { deleteRound(round.id); router.replace('/'); } },
-  ]);
+  const remove = () => confirmAction({ title: 'Delete this round?', message: "This can't be undone.", confirmLabel: 'Delete', destructive: true, onConfirm: () => { deleteRound(round.id); router.replace('/'); } });
 
   return (
     <Screen>
