@@ -1,9 +1,10 @@
 // Active round — the heart of GolfHaus. One screen to see the hole, the GPS
 // distance to the green, and record every player's score in a couple of taps.
 import React, { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen, Pad, Button, Chip, Stepper, Muted, GradientCard } from '../../../src/ui';
+import { confirmAction } from '../../../src/ui/dialog';
 import { useApp } from '../../../src/data/AppState';
 import { Fairway, HoleScore, Round, holesInRound } from '../../../src/domain/types';
 import { fmtToPar, leaderboard, nextUnscoredHole, parForHole, stamp, totals } from '../../../src/scoring';
@@ -66,10 +67,7 @@ export default function ActiveRound() {
   const prev = () => { if (idx > 0) go(order[idx - 1]); };
   const finish = () => { confirmUnscored(); router.push(`/round/${round.id}/summary`); };
 
-  const end = () => Alert.alert('Leave this round?', 'Your scores are saved. You can pick it up again from Home.', [
-    { text: 'Keep playing', style: 'cancel' },
-    { text: 'Leave', onPress: () => router.replace('/') },
-  ]);
+  const end = () => confirmAction({ title: 'Leave this round?', message: 'Your scores are saved. You can pick it up again from Home.', confirmLabel: 'Leave', onConfirm: () => router.replace('/') });
 
   const meScore = me.scores[hole];
   const myTotals = totals(round, me);

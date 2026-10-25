@@ -1,8 +1,9 @@
 // Course detail — holes, pars (editable), GPS availability, favourite, play.
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen, Pad, Button, Card, Muted, SectionLabel, Divider } from '../../src/ui';
+import { notify } from '../../src/ui/dialog';
 import { useApp } from '../../src/data/AppState';
 import { fetchCourse, bareCourse, hasGps } from '../../src/data/courses/overpass';
 import { Course, CourseSummary } from '../../src/domain/types';
@@ -113,7 +114,7 @@ export default function CourseDetail() {
           </Pad>
 
           <Pad style={{ marginTop: 18 }}>
-            <Button label="Report incorrect course data" variant="ghost" size="md" onPress={() => Alert.alert('Thanks for flagging it', 'You can fix pars right here, and they\'re saved for your rounds. Shared corrections and verification arrive with accounts in the next release.')} />
+            <Button label="Report incorrect course data" variant="ghost" size="md" onPress={() => notify('Thanks for flagging it', "You can fix pars right here, and they're saved for your rounds. Shared corrections and verification arrive with accounts in the next release.")} />
             <Muted style={{ textAlign: 'center', marginTop: 6, fontSize: 12.5 }}>Map data © OpenStreetMap contributors (ODbL)</Muted>
           </Pad>
         </>

@@ -4,6 +4,8 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Course, Golfer, Round, EMPTY_GOLFER } from '../domain/types';
+import type { PushResult } from './sync';
+import { mergeRound } from './sync';
 import { coursesRepo, golferRepo, roundsRepo, clearAll } from './store';
 
 type State = {
@@ -13,6 +15,7 @@ type State = {
   courses: Record<string, Course>;
   favourites: string[];
   recents: string[];
+  pendingDeletes: string[];
 };
 
 type Actions = {
@@ -23,6 +26,10 @@ type Actions = {
   toggleFavourite: (id: string) => void;
   touchRecent: (id: string) => void;
   reset: () => Promise<void>;
+  // cloud sync
+  markSynced: (r: PushResult) => void;
+  mergeRemoteRounds: (remote: Round[]) => void;
+  clearPendingDelete: (remoteId: string) => void;
 };
 
 const Ctx = createContext<(State & Actions) | null>(null);
@@ -34,14 +41,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [courses, setCourses] = useState<Record<string, Course>>({});
   const [favourites, setFavourites] = useState<string[]>([]);
   const [recents, setRecents] = useState<string[]>([]);
+  const [pendingDeletes, setPendingDeletes] = useState<string[]>([]);
   const ready = useRef(false);
 
   useEffect(() => {
     (async () => {
-      const [g, r, c, f, rc] = await Promise.all([
-        golferRepo.load(), roundsRepo.load(), coursesRepo.load(), coursesRepo.loadFavourites(), coursesRepo.loadRecents(),
+      const [g, r, c, f, rc, pd] = await Promise.all([
+        golferRepo.load(), roundsRepo.load(), coursesRepo.load(), coursesRepo.loadFavourites(), coursesRepo.loadRecents(), roundsRepo.loadPendingDeletes(),
       ]);
-      setGolferState(g); setRounds(r); setCourses(c); setFavourites(f); setRecents(rc);
+      setGolferState(g); setRounds(r); setCourses(c); setFavourites(f); setRecents(rc); setPendingDeletes(pd);
       ready.current = true;
       setHydrated(true);
     })();
@@ -52,6 +60,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { if (ready.current) coursesRepo.save(courses); }, [courses]);
   useEffect(() => { if (ready.current) coursesRepo.saveFavourites(favourites); }, [favourites]);
   useEffect(() => { if (ready.current) coursesRepo.saveRecents(recents); }, [recents]);
+  useEffect(() => { if (ready.current) roundsRepo.savePendingDeletes(pendingDeletes); }, [pendingDeletes]);
 
   const setGolfer = useCallback((g: Golfer | ((g: Golfer) => Golfer)) => {
     setGolferState((prev) => (typeof g === 'function' ? g(prev) : g));
@@ -65,7 +74,37 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const deleteRound = useCallback((id: string) => setRounds((prev) => prev.filter((r) => r.id !== id)), []);
+  const deleteRound = useCallback((id: string) => {
+    setRounds((prev) => {
+      const gone = prev.find((r) => r.id === id);
+      if (gone?.remoteId) setPendingDeletes((q) => (q.includes(gone.remoteId!) ? q : [...q, gone.remoteId!]));
+      return prev.filter((r) => r.id !== id);
+    });
+  }, []);
+
+  // Apply a push result to the *current* round, so edits made while the push
+  // was in flight are kept (they still have updatedAt > syncedAt).
+  const markSynced = useCallback((res: PushResult) => {
+    setRounds((prev) => prev.map((r) => (r.id !== res.roundId ? r : {
+      ...r,
+      remoteId: res.remoteId,
+      syncedAt: res.syncedAt,
+      players: r.players.map((p) => ({ ...p, remoteId: p.remoteId ?? res.playerRemoteIds[p.id] })),
+    })));
+  }, []);
+
+  const mergeRemoteRounds = useCallback((remote: Round[]) => {
+    setRounds((prev) => {
+      const next = prev.slice();
+      for (const rr of remote) {
+        const i = next.findIndex((r) => r.remoteId === rr.remoteId || r.id === rr.id);
+        if (i < 0) next.push(rr); else next[i] = mergeRound(next[i], rr);
+      }
+      return next.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+    });
+  }, []);
+
+  const clearPendingDelete = useCallback((remoteId: string) => setPendingDeletes((q) => q.filter((x) => x !== remoteId)), []);
 
   const upsertCourse = useCallback((c: Course) => setCourses((prev) => ({ ...prev, [c.id]: c })), []);
 
@@ -79,12 +118,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const reset = useCallback(async () => {
     await clearAll();
-    setGolferState(EMPTY_GOLFER); setRounds([]); setCourses({}); setFavourites([]); setRecents([]);
+    setGolferState(EMPTY_GOLFER); setRounds([]); setCourses({}); setFavourites([]); setRecents([]); setPendingDeletes([]);
   }, []);
 
   const value = useMemo(
-    () => ({ hydrated, golfer, rounds, courses, favourites, recents, setGolfer, upsertRound, deleteRound, upsertCourse, toggleFavourite, touchRecent, reset }),
-    [hydrated, golfer, rounds, courses, favourites, recents, setGolfer, upsertRound, deleteRound, upsertCourse, toggleFavourite, touchRecent, reset],
+    () => ({ hydrated, golfer, rounds, courses, favourites, recents, pendingDeletes, setGolfer, upsertRound, deleteRound, upsertCourse, toggleFavourite, touchRecent, reset, markSynced, mergeRemoteRounds, clearPendingDelete }),
+    [hydrated, golfer, rounds, courses, favourites, recents, pendingDeletes, setGolfer, upsertRound, deleteRound, upsertCourse, toggleFavourite, touchRecent, reset, markSynced, mergeRemoteRounds, clearPendingDelete],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
