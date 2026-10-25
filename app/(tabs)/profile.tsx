@@ -5,9 +5,8 @@ import { useRouter } from 'expo-router';
 import { Screen, Pad, Header, SectionLabel, StatTile, Card, Chip, Muted, Button, Empty } from '../../src/ui';
 import { confirmAction } from '../../src/ui/dialog';
 import { RoundCard } from '../../src/components';
+import { AccountCard } from '../../src/components/AccountCard';
 import { useApp } from '../../src/data/AppState';
-import { useAuth } from '../../src/data/auth';
-import { useCloudSync } from '../../src/data/CloudSync';
 import { careerStats, fmtToPar, RESULT_LABEL, HoleResult } from '../../src/scoring';
 import { fonts, useTheme } from '../../src/theme';
 
@@ -18,8 +17,6 @@ export default function Profile() {
   const t = useTheme();
   const { golfer, setGolfer, rounds, reset } = useApp();
   const stats = careerStats(rounds);
-  const auth = useAuth();
-  const sync = useCloudSync();
   const history = rounds.filter((r) => r.status === 'complete');
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(golfer.name);
@@ -50,30 +47,7 @@ export default function Profile() {
       )}
 
       <SectionLabel>Account</SectionLabel>
-      <Pad>
-        <Card soft>
-          <Text style={{ fontFamily: fonts.displaySemi, fontSize: 16, color: t.text }}>
-            {auth.status === 'disabled' ? 'On this device only' : auth.status === 'signedIn' ? (auth.isGuest ? 'Guest account' : auth.email ?? 'Signed in') : auth.status === 'loading' ? 'Connecting…' : 'Offline'}
-          </Text>
-          <Muted style={{ marginTop: 4 }}>
-            {auth.status === 'disabled'
-              ? 'Cloud sync is not configured for this build.'
-              : sync.state === 'syncing'
-                ? 'Syncing your rounds…'
-                : sync.state === 'error'
-                  ? `Sync paused — will retry. ${sync.pending} change${sync.pending === 1 ? '' : 's'} waiting.`
-                  : sync.lastSyncedAt
-                    ? `Rounds backed up · last sync ${new Date(sync.lastSyncedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
-                    : auth.status === 'signedIn' ? 'Rounds back up automatically.' : 'Your rounds are saved on this device and will sync when you are back online.'}
-          </Muted>
-          {auth.status === 'signedIn' && auth.isGuest && (
-            <Muted style={{ marginTop: 8, fontSize: 13 }}>Sign in with email (coming next) to restore your rounds on a new phone.</Muted>
-          )}
-          {auth.status === 'signedIn' && sync.state !== 'syncing' && (
-            <View style={{ marginTop: 12, alignSelf: 'flex-start' }}><Chip label="Sync now" onPress={sync.syncNow} /></View>
-          )}
-        </Card>
-      </Pad>
+      <Pad><AccountCard /></Pad>
 
       <SectionLabel>Appearance</SectionLabel>
       <Pad style={{ flexDirection: 'row', gap: 8 }}>

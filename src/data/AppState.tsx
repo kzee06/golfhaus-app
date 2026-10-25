@@ -16,6 +16,7 @@ type State = {
   favourites: string[];
   recents: string[];
   pendingDeletes: string[];
+  syncUserId: string | null;
 };
 
 type Actions = {
@@ -30,6 +31,8 @@ type Actions = {
   markSynced: (r: PushResult) => void;
   mergeRemoteRounds: (remote: Round[]) => void;
   clearPendingDelete: (remoteId: string) => void;
+  setSyncUserId: (id: string | null) => void;
+  adoptLocalRounds: () => void;
 };
 
 const Ctx = createContext<(State & Actions) | null>(null);
@@ -42,14 +45,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [favourites, setFavourites] = useState<string[]>([]);
   const [recents, setRecents] = useState<string[]>([]);
   const [pendingDeletes, setPendingDeletes] = useState<string[]>([]);
+  const [syncUserId, setSyncUserId] = useState<string | null>(null);
   const ready = useRef(false);
 
   useEffect(() => {
     (async () => {
-      const [g, r, c, f, rc, pd] = await Promise.all([
-        golferRepo.load(), roundsRepo.load(), coursesRepo.load(), coursesRepo.loadFavourites(), coursesRepo.loadRecents(), roundsRepo.loadPendingDeletes(),
+      const [g, r, c, f, rc, pd, su] = await Promise.all([
+        golferRepo.load(), roundsRepo.load(), coursesRepo.load(), coursesRepo.loadFavourites(), coursesRepo.loadRecents(), roundsRepo.loadPendingDeletes(), roundsRepo.loadSyncUser(),
       ]);
-      setGolferState(g); setRounds(r); setCourses(c); setFavourites(f); setRecents(rc); setPendingDeletes(pd);
+      setGolferState(g); setRounds(r); setCourses(c); setFavourites(f); setRecents(rc); setPendingDeletes(pd); setSyncUserId(su);
       ready.current = true;
       setHydrated(true);
     })();
@@ -61,6 +65,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { if (ready.current) coursesRepo.saveFavourites(favourites); }, [favourites]);
   useEffect(() => { if (ready.current) coursesRepo.saveRecents(recents); }, [recents]);
   useEffect(() => { if (ready.current) roundsRepo.savePendingDeletes(pendingDeletes); }, [pendingDeletes]);
+  useEffect(() => { if (ready.current) roundsRepo.saveSyncUser(syncUserId); }, [syncUserId]);
 
   const setGolfer = useCallback((g: Golfer | ((g: Golfer) => Golfer)) => {
     setGolferState((prev) => (typeof g === 'function' ? g(prev) : g));
@@ -106,6 +111,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const clearPendingDelete = useCallback((remoteId: string) => setPendingDeletes((q) => q.filter((x) => x !== remoteId)), []);
 
+  // The signed-in account changed (e.g. a guest signed into an existing
+  // account): local rounds belonged to the old identity, so forget their server
+  // ids and they re-upload as new rows owned by the new account.
+  const adoptLocalRounds = useCallback(() => {
+    setRounds((prev) => prev.map((r) => ({
+      ...r, remoteId: undefined, syncedAt: undefined,
+      players: r.players.map((p) => ({ ...p, remoteId: undefined })),
+    })));
+    setPendingDeletes([]);
+  }, []);
+
   const upsertCourse = useCallback((c: Course) => setCourses((prev) => ({ ...prev, [c.id]: c })), []);
 
   const toggleFavourite = useCallback((id: string) => {
@@ -118,12 +134,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const reset = useCallback(async () => {
     await clearAll();
-    setGolferState(EMPTY_GOLFER); setRounds([]); setCourses({}); setFavourites([]); setRecents([]); setPendingDeletes([]);
+    setGolferState(EMPTY_GOLFER); setRounds([]); setCourses({}); setFavourites([]); setRecents([]); setPendingDeletes([]); setSyncUserId(null);
   }, []);
 
   const value = useMemo(
-    () => ({ hydrated, golfer, rounds, courses, favourites, recents, pendingDeletes, setGolfer, upsertRound, deleteRound, upsertCourse, toggleFavourite, touchRecent, reset, markSynced, mergeRemoteRounds, clearPendingDelete }),
-    [hydrated, golfer, rounds, courses, favourites, recents, pendingDeletes, setGolfer, upsertRound, deleteRound, upsertCourse, toggleFavourite, touchRecent, reset, markSynced, mergeRemoteRounds, clearPendingDelete],
+    () => ({ hydrated, golfer, rounds, courses, favourites, recents, pendingDeletes, syncUserId, setGolfer, upsertRound, deleteRound, upsertCourse, toggleFavourite, touchRecent, reset, markSynced, mergeRemoteRounds, clearPendingDelete, setSyncUserId, adoptLocalRounds }),
+    [hydrated, golfer, rounds, courses, favourites, recents, pendingDeletes, syncUserId, setGolfer, upsertRound, deleteRound, upsertCourse, toggleFavourite, touchRecent, reset, markSynced, mergeRemoteRounds, clearPendingDelete, setSyncUserId, adoptLocalRounds],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
